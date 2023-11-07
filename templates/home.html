@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HDR Donor tool</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+<body>
+    width: 800px;
+    <h1>Make HDR donor sequence.</h1>
+    <h3>1. Enter gene name and NCBI id for transcript. </h3>
+    <form method="POST">
+        <label for="gene_name">Gene name</label>
+        <input type="text" name="gene_name" value="" style="width: 100px;">
+        <label for="ncbi_id">NCBI id</label>
+        <input type="text" name="ncbi_id" value="" style="width: 100px;">
+        <input type="submit">
+    </form>
+    <h4>Gene name: {{ gene_name }},  NCBI id: {{ ncbi_id }}</h4>
+    <h4>Gene info: {{ gene_dict }}</h4>
+    <h3>2. Enter guide sequence. </h3>
+    <form method="POST">
+        <input name="text1">
+        <input type="submit">
+    </form>
+    <h4>Guide sequence: {{ guide_seq }}</h4>
+    <h3>3. Enter left arm size. </h3>
+    <form method="POST">
+        <label for="lha">Size of LHA</label>
+        <input type="text" name="lha" value="" style="width: 100px;">
+        <label for="rha">Size of RHA</label>
+        <input type="text" name="rha" value="" style="width: 100px;">
+        <label for="flank">Flank size</label>
+        <input type="text" name="flank" value="" style="width: 100px;">
+        <input type="submit" value="Submit">
+    </form>
+    <h4>LHA: {{ lha }}, RHA: {{ rha }}, Flank: {{ flank }}</h4>
+    <h3>3. Choose elements for insert step by step and strands for them. </h3>
+    <form method="POST">
+        <select name="dropdown">
+            {% for element in possible_elements %}
+                <option value="{{ element }}">{{ element }}</option>
+            {% endfor %}
+        </select>
+        <input type="submit" value="Submit">
+    </form>
+    <h4>Selected elements: {{ selected_elements }}</h4>
+    <form method="POST" action="/button_clicked">
+        <button type="submit">Delete element</button>
+    </form>
+    <h3>4. Sequence: </h3>
+    <h4 class="wrap-text">{{ full_seq | safe }}</h4>
+    <h3>4. Save result to fasta and csv files. </h3>
+    <h3>{{ utc_dt }}</h3>
+
+
+
+    
+
+</body>
+</html>
