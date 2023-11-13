@@ -125,7 +125,7 @@ def guide_info(guide_seq, CDS_seq):
     return position_insert_start, guide_cut_size, guide
 
 
-def make_seqience(flank_size, LHA_size, RHA_size, donor_elements, element_sequnces_sequences, ):
+def make_seqience(flank_size, LHA_size, RHA_size, donor_elements, element_sequnces_sequences, colors):
 
     stop_codons = ['TAA', 'TAG', 'TGA']
     compl_dict = {'A':'T', 'T':'A', 'G':'C', 'C':'G'}
@@ -137,7 +137,9 @@ def make_seqience(flank_size, LHA_size, RHA_size, donor_elements, element_sequnc
     elements_list.append(['LHA', flank_size+1, flank_size + LHA_size, '+', 'gene sequence'])
 
     insert_sequence = ''
+    insert_sequence_color = ''
     for step, element in enumerate(donor_elements):
+        element = '_'.join(element.split('_')[1:])
         if '_reverse' in element:
             direction = '-'
             element = element.split('_reverse')[0]
@@ -157,13 +159,21 @@ def make_seqience(flank_size, LHA_size, RHA_size, donor_elements, element_sequnc
             seq_i = seq_i[:-3]
             print(element, 'STOP')
         insert_sequence += seq_i
+        insert_sequence_color += colors[group][2]
+        insert_sequence_color += seq_i
+        insert_sequence_color += "</span>"
+
+
         if (len(insert_sequence)%3 != 0) & (in_frame==1):
             insert_sequence += 'N'*(3 - len(insert_sequence)%3)
+            insert_sequence_color += colors[group][2]
+            insert_sequence_color += 'N'*(3 - len(insert_sequence)%3)
+            insert_sequence_color += "</span>"
             
         elements_list.append([element, next_element, insert_start + len(insert_sequence) - 1, direction, group])
         next_element = insert_start + len(insert_sequence)
 
     elements_list.append(['RHA', elements_list[-1][2]+1, elements_list[-1][2] + RHA_size, '+', 'gene sequence'])
 
-    return elements_list, insert_sequence
+    return elements_list, insert_sequence, insert_sequence_color
 

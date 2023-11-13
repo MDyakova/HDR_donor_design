@@ -19,13 +19,13 @@ body {
 }
 
 /* CSS classes for different text colors */
-.violet-text {
-    color: rgb(91, 57, 107);
+.blue-text {
+    color: rgb(0, 0, 238);
     font-size: 14px;
 }
 
-.blue-text {
-    color: blue;
+.green-text {
+    color: rgb(0, 201, 87);
     font-size: 14px;
     /* background-color:rgb(249, 248, 248) */
 }
@@ -33,4 +33,22 @@ body {
 .black-text {
     color: rgb(5, 5, 5);
     font-size: 14px;
+}
+
+.peach-text {
+    color: rgb(205, 179, 139);
+    font-size: 14px;
+    /* background-color:rgb(249, 248, 248) */
+}
+
+.red-text {
+    color: rgb(255, 48, 48);
+    font-size: 14px;
+    /* background-color:rgb(249, 248, 248) */
+}
+
+.orange-text {
+    color: rgb(255, 97, 3);
+    font-size: 14px;
+    /* background-color:rgb(249, 248, 248) */
 }

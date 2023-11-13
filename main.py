@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, session, redirect, url_for
+from flask import Flask, render_template, request, session, redirect, url_for, send_file
 from utilities import ensemble_info, ncbi_information, guide_info, make_seqience
 from flask_wtf import FlaskForm
 from wtforms import StringField
@@ -14,13 +14,13 @@ possible_elements = pd.unique(element_sequnces_sequences['Elements'] + '_' + ele
 out_dict = {'gene_name':'', 'ncbi_id':'', 'guide_seq':'', 'lha':400, 'rha':400, 
             'ensemble_gene_seq':'', 'gene_dict':'', 'CDS_seq':'', 'position_insert_start':'',
             'flank':100, 'guide':'', 'guide_cut_size':'', 'full_seq':'', 'possible_elements':possible_elements,
-            'selected_elements':[], 'make_sequence':False}
+            'selected_elements':[], 'selected_elements_color':'', 'make_sequence':False}
 
-colors = {'2A motif':'#0000EE',
-          'protein': '#00C957',
-          'cloning' : '#CDB38B',
-          'Stop codon': '#FF3030',
-          'Terminator': '#FF6103'}
+colors = {'2A motif':['#0000EE', '(0, 0, 238)', "<span class='blue-text'>"],
+          'protein': ['#00C957', '(0, 201, 87)', "<span class='green-text'>"],
+          'cloning' : ['#CDB38B', '(205, 179, 139)', "<span class='peach-text'>"],
+          'Stop codon': ['#FF3030', '(255, 48, 48)', "<span class='red-text'>"],
+          'Terminator': ['#FF6103', '(255, 97, 3)', "<span class='orange-text'>"]}
 
 class Gene_info(FlaskForm):
     text_field = StringField('Gene name', default='')
@@ -103,18 +103,38 @@ def index(out_dict):
 
             insert_sequence = ''
 
+            elements_list, insert_sequence, insert_sequence_color = make_seqience(out_dict['flank'], 
+                                                                                out_dict['lha'] , 
+                                                                                out_dict['rha'] , 
+                                                                                out_dict['selected_elements'], 
+                                                                                element_sequnces_sequences,
+                                                                                colors)
+
             # out_dict['full_seq'] = left_flank + LHA_sequence + insert_sequence + RHA_sequence + right_flank
             out_dict['full_seq'] = ("<span class='black-text'>" + left_flank 
-                                    + "</span><span class='violet-text'>" + LHA_sequence 
-                                    + "</span><span class='black-text'>" + insert_sequence 
-                                    + "</span><span class='violet-text'>" + RHA_sequence 
+                                    + "</span><span class='black-text'>" + LHA_sequence 
+                                    + insert_sequence_color 
+                                    + "<span class='violet-text'>" + RHA_sequence 
                                     + "</span><span class='black-text'>" + right_flank 
-                                    + "</span>.")
+                                    + "</span>")
             
         if 'del_element_submit' in request.form:
             if len(out_dict['selected_elements'])>0:
                 _ = out_dict['selected_elements'].pop()
+                out_dict['selected_elements_colors'] = ', '.join([colors[e.split('_')[0]][2] + e + '</span>' 
+                                                                        for e in out_dict['selected_elements']])
+                
+        
+        if 'file_upload_submit' in request.form:
+            if 'file' not in request.files:
+                return "No file part"
+            
+            file = request.files['file']
+            filename = file.filename
+            content_type = file.content_type
+            content = file.read()
 
+            print(filename, content_type, content)
     
           
         selected_element = request.form.get('dropdown')
@@ -125,6 +145,9 @@ def index(out_dict):
                 out_dict['selected_elements'].append(selected_element + '_reverse')
             else:
                 out_dict['selected_elements'].append(selected_element)
+            out_dict['selected_elements_colors'] = ', '.join([colors[e.split('_')[0]][2] + e + '</span>' 
+                                                            for e in out_dict['selected_elements']])
+            print(out_dict['selected_elements_colors'])
 
         item_to_delete = request.form.get('delete_item')
 
@@ -159,6 +182,17 @@ def root():
 # def button_clicked2():
 #     out_dict['make_sequence'] = True
 #     return redirect(url_for('root'))
+
+@app.route('/download')
+def download_file():
+
+    file_path = 'readme.txt'  # Replace with the actual path to your file
+
+    # You can customize the filename that the user will see when downloading
+    filename = f'C:/Users/TargetGene/Documents/downloaded_file.txt'
+
+    # Use send_file to send the file to the user's browser for download
+    return send_file(file_path, as_attachment=True, download_name=filename)
 
 if __name__ == '__main__':
     app.run(debug=True)

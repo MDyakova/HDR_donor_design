@@ -62,7 +62,7 @@
         <input type="checkbox" id="checkbox" name="checkbox" value="reverse">
         <input type="submit" value="Submit">
     </form>
-    <h4>Selected elements: {{ out_dict['selected_elements'] }}</h4>
+    <h4>Selected elements: {{ out_dict['selected_elements_colors'] | safe  }}</h4>
     <!-- <form method="POST" action="/button_clicked">
         <button type="submit">Delete element</button>
     </form> -->
@@ -76,7 +76,17 @@
     <h4 class="wrap-text">{{ out_dict['full_seq'] | safe }}</h4>
     <h3>4. Save result to fasta and csv files. </h3>
 
+    <h2>Upload a File</h2>
+    <form method="post" enctype="multipart/form-data">
+        <input type="file" name="file">
+        <input type="submit" value="Upload" name="file_upload_submit">
+    </form>
 
+    <h2>Upload a CSV File</h2>
+    <form method="post" enctype="multipart/form-data">
+        <input type="file" name="csv_file" accept=".csv">
+        <input type="submit" value="Upload">
+    </form>
 
 
     
