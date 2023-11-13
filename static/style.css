@@ -14,6 +14,10 @@
     white-space: pre-line;
 }
 
+body {
+    background-color: #d8edf0; /* Set your desired background color here */
+}
+
 /* CSS classes for different text colors */
 .violet-text {
     color: rgb(91, 57, 107);

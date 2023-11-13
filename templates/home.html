@@ -7,26 +7,41 @@
 
 </head>
 <body>
-    width: 800px;
     <h1>Make HDR donor sequence.</h1>
     <h3>1. Enter gene name and NCBI id for transcript. </h3>
     <form method="POST">
-        <label for="gene_name">Gene name</label>
-        <input type="text" name="gene_name" value="" style="width: 100px;">
-        <label for="ncbi_id">NCBI id</label>
-        <input type="text" name="ncbi_id" value="" style="width: 100px;">
-        <input type="submit">
+        {{ forms['gene_info_form'].hidden_tag() }}
+        <div>
+            {{ forms['gene_info_form'].text_field.label }} {{ forms['gene_info_form'].text_field }}
+            {{ forms['gene_info_form'].text_field2.label }} {{ forms['gene_info_form'].text_field2 }}
+            <input type="submit" value="Submit" name="gene_info_form_submit">
+        </div>
     </form>
-    <h4>Gene name: {{ gene_name }},  NCBI id: {{ ncbi_id }}</h4>
-    <h4>Gene info: {{ gene_dict }}</h4>
-    <h3>2. Enter guide sequence. </h3>
+    <h4>Gene info: {{ out_dict['gene_dict'] }}</h4>
+    <h3>2. Enter guide sequences with gap. </h3>
     <form method="POST">
+        {{ forms['guide_seq_form'].hidden_tag() }}
+        <div>
+            {{ forms['guide_seq_form'].text_field3.label }} {{ forms['guide_seq_form'].text_field3 }}
+            <input type="submit" value="Submit" name="guide_seq_form_submit">
+        </div>
+    </form>
+    <!-- <form method="POST">
         <input name="text1">
         <input type="submit">
     </form>
-    <h4>Guide sequence: {{ guide_seq }}</h4>
-    <h3>3. Enter left arm size. </h3>
+    <h4>Guide sequence: {{ guide_seq }}</h4> -->
+    <h3>3. Enter arm sizes and flans size. </h3>
     <form method="POST">
+        {{ forms['arm_size_form'].hidden_tag() }}
+        <div>
+            {{ forms['arm_size_form'].text_field4.label }} {{ forms['arm_size_form'].text_field4 }}
+            {{ forms['arm_size_form'].text_field5.label }} {{ forms['arm_size_form'].text_field5 }}
+            {{ forms['arm_size_form'].text_field6.label }} {{ forms['arm_size_form'].text_field6 }}
+            <input type="submit" value="Submit" name="arm_size_form_submit">
+        </div>
+    </form>
+    <!-- <form method="POST">
         <label for="lha">Size of LHA</label>
         <input type="text" name="lha" value="" style="width: 100px;">
         <label for="rha">Size of RHA</label>
@@ -35,24 +50,32 @@
         <input type="text" name="flank" value="" style="width: 100px;">
         <input type="submit" value="Submit">
     </form>
-    <h4>LHA: {{ lha }}, RHA: {{ rha }}, Flank: {{ flank }}</h4>
+    <h4>LHA: {{ lha }}, RHA: {{ rha }}, Flank: {{ flank }}</h4> -->
     <h3>3. Choose elements for insert step by step and strands for them. </h3>
     <form method="POST">
         <select name="dropdown">
-            {% for element in possible_elements %}
+            {% for element in out_dict['possible_elements'] %}
                 <option value="{{ element }}">{{ element }}</option>
             {% endfor %}
         </select>
+        <label for="checkbox">Reverse</label>
+        <input type="checkbox" id="checkbox" name="checkbox" value="reverse">
         <input type="submit" value="Submit">
     </form>
-    <h4>Selected elements: {{ selected_elements }}</h4>
-    <form method="POST" action="/button_clicked">
+    <h4>Selected elements: {{ out_dict['selected_elements'] }}</h4>
+    <!-- <form method="POST" action="/button_clicked">
         <button type="submit">Delete element</button>
+    </form> -->
+    <form method="POST">
+        <input type="submit" value="Delete element" name="del_element_submit">
     </form>
     <h3>4. Sequence: </h3>
-    <h4 class="wrap-text">{{ full_seq | safe }}</h4>
+    <form method="POST">
+        <input type="submit" value="Make donor sequence" name="make_seq_submit">
+    </form>
+    <h4 class="wrap-text">{{ out_dict['full_seq'] | safe }}</h4>
     <h3>4. Save result to fasta and csv files. </h3>
-    <h3>{{ utc_dt }}</h3>
+
 
 
 

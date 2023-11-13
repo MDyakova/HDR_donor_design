@@ -55,6 +55,10 @@ def ensemble_info(gene_name):
         
     ensemble_gene_seq = ''.join(gene_seq)
 
+    del gene_dict['gene_name']
+    del gene_dict['gene_id']
+    del gene_dict['genome']
+
     return ensemble_gene_seq, gene_dict
 
 def ncbi_information(NCBI_id):
@@ -119,4 +123,47 @@ def guide_info(guide_seq, CDS_seq):
     position_insert_start = guide_cut_size - cut_site_codon_pos
 
     return position_insert_start, guide_cut_size, guide
+
+
+def make_seqience(flank_size, LHA_size, RHA_size, donor_elements, element_sequnces_sequences, ):
+
+    stop_codons = ['TAA', 'TAG', 'TGA']
+    compl_dict = {'A':'T', 'T':'A', 'G':'C', 'C':'G'}
+
+    insert_start = flank_size + LHA_size + 1
+    next_element = insert_start
+
+    elements_list = []
+    elements_list.append(['LHA', flank_size+1, flank_size + LHA_size, '+', 'gene sequence'])
+
+    insert_sequence = ''
+    for step, element in enumerate(donor_elements):
+        if '_reverse' in element:
+            direction = '-'
+            element = element.split('_reverse')[0]
+            seq_i = element_sequnces_sequences[element_sequnces_sequences['Names']==element]['Sequence'].max().upper()
+            group = element_sequnces_sequences[element_sequnces_sequences['Names']==element]['Elements'].max()
+            seq_i = seq_i.replace('U', 'T')
+            seq_i = ''.join([compl_dict[i] for i in seq_i][::-1])
+        else:
+            direction = '+'
+            seq_i = element_sequnces_sequences[element_sequnces_sequences['Names']==element]['Sequence'].max().upper()
+            group = element_sequnces_sequences[element_sequnces_sequences['Names']==element]['Elements'].max()
+            seq_i = seq_i.replace('U', 'T')
+        
+            
+        in_frame = element_sequnces_sequences[element_sequnces_sequences['Names']==element]['in frame'].max()
+        if (seq_i[-3:] in stop_codons) & (in_frame==1):
+            seq_i = seq_i[:-3]
+            print(element, 'STOP')
+        insert_sequence += seq_i
+        if (len(insert_sequence)%3 != 0) & (in_frame==1):
+            insert_sequence += 'N'*(3 - len(insert_sequence)%3)
+            
+        elements_list.append([element, next_element, insert_start + len(insert_sequence) - 1, direction, group])
+        next_element = insert_start + len(insert_sequence)
+
+    elements_list.append(['RHA', elements_list[-1][2]+1, elements_list[-1][2] + RHA_size, '+', 'gene sequence'])
+
+    return elements_list, insert_sequence
 
