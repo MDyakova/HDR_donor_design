@@ -19,6 +19,7 @@ import requests
 import time
 import json
 from tqdm import tqdm_notebook
+from matplotlib import colors as m_colors
 
 def ensemble_info(gene_name):
     # release 109 uses human reference genome GRCh38
@@ -158,11 +159,12 @@ def make_seqience(flank_size, LHA_size, RHA_size, donor_elements, element_sequnc
         if (seq_i[-3:] in stop_codons) & (in_frame==1):
             seq_i = seq_i[:-3]
             print(element, 'STOP')
+        
         insert_sequence += seq_i
+
         insert_sequence_color += colors[group][2]
         insert_sequence_color += seq_i
         insert_sequence_color += "</span>"
-
 
         if (len(insert_sequence)%3 != 0) & (in_frame==1):
             insert_sequence += 'N'*(3 - len(insert_sequence)%3)
@@ -170,10 +172,32 @@ def make_seqience(flank_size, LHA_size, RHA_size, donor_elements, element_sequnc
             insert_sequence_color += 'N'*(3 - len(insert_sequence)%3)
             insert_sequence_color += "</span>"
             
+        # print(seq_i)
+        # print()
+        # print(insert_sequence_color)
+
         elements_list.append([element, next_element, insert_start + len(insert_sequence) - 1, direction, group])
         next_element = insert_start + len(insert_sequence)
 
     elements_list.append(['RHA', elements_list[-1][2]+1, elements_list[-1][2] + RHA_size, '+', 'gene sequence'])
 
     return elements_list, insert_sequence, insert_sequence_color
+
+def make_sequence_image(gene_name, elements_list, colors, full_sequence):
+    features = []
+    plt.figure(figsize=(10, 20))
+    for element in elements_list:
+        if element[3] == '+':
+            strand_plot = +1
+        else:
+            strand_plot = -1
+        feature = GraphicFeature(start=element[1], end=element[2], strand=strand_plot, color=colors[element[4]][0],
+                            label=element[0])
+        features.append(feature)
+    #     break
+    record = GraphicRecord(sequence_length=len(full_sequence), features=features)
+    cropped_record = record.crop((1, len(full_sequence)))
+    cropped_record.sequence = full_sequence
+    cropped_record.plot(figure_width=10, strand_in_label_threshold=7, plot_sequence=False)
+    plt.savefig('static/outputs/' + gene_name + '/map_for_' + gene_name + '.png', bbox_inches='tight')
 

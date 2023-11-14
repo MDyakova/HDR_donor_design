@@ -62,6 +62,14 @@
         <input type="checkbox" id="checkbox" name="checkbox" value="reverse">
         <input type="submit" value="Submit">
     </form>
+    <h4>Or choose your fasta file</h4>
+    <form method="post" enctype="multipart/form-data">
+        <!-- <label for="file">or choose your fasta file</label> -->
+        <input type="file" name="file" accept=".fa, .txt, .fasta" class="open_file">
+        <label for="checkbox2">In frame</label>
+        <input type="checkbox" id="checkbox2" name="checkbox2" value="in_frame">
+        <input type="submit" value="Upload" name="file_upload_submit">
+    </form>
     <h4>Selected elements: {{ out_dict['selected_elements_colors'] | safe  }}</h4>
     <!-- <form method="POST" action="/button_clicked">
         <button type="submit">Delete element</button>
@@ -73,20 +81,17 @@
     <form method="POST">
         <input type="submit" value="Make donor sequence" name="make_seq_submit">
     </form>
-    <h4 class="wrap-text">{{ out_dict['full_seq'] | safe }}</h4>
-    <h3>4. Save result to fasta and csv files. </h3>
-
-    <h2>Upload a File</h2>
-    <form method="post" enctype="multipart/form-data">
-        <input type="file" name="file">
-        <input type="submit" value="Upload" name="file_upload_submit">
+    <h4 class="wrap-text">{{ out_dict['full_seq_color'] | safe }}</h4>
+    <h3>5. Elements </h3>
+    <form method="POST">
+        <input type="submit" value="Make image" name="make_image_submit">
     </form>
-
-    <h2>Upload a CSV File</h2>
+    <img src="{{ url_for('static', filename=out_dict['image_name']) }}" alt="Dynamic Image">
+    <!-- <h2>Upload a CSV File</h2>
     <form method="post" enctype="multipart/form-data">
         <input type="file" name="csv_file" accept=".csv">
         <input type="submit" value="Upload">
-    </form>
+    </form> -->
 
 
     

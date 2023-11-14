@@ -52,3 +52,42 @@ body {
     font-size: 14px;
     /* background-color:rgb(249, 248, 248) */
 }
+
+.greenlight-text {
+    color: rgb(205, 255, 3);
+    font-size: 14px;
+    /* background-color:rgb(249, 248, 248) */
+}
+
+.redlight-text {
+    color: rgb(224, 68, 29);
+    font-size: 14px;
+    /* background-color:rgb(249, 248, 248) */
+}
+
+.purple-text {
+    color: rgb(139, 29, 224);
+    font-size: 14px;
+    /* background-color:rgb(249, 248, 248) */
+}
+
+.grey-text {
+    color: rgb(181, 181, 177);
+    font-size: 14px;
+    /* background-color:rgb(249, 248, 248) */
+}
+
+.form-group {
+    /* display: flex;
+    flex-direction: column; */
+    width: 900px;
+    gap: 10px; /* Adjust the gap value as needed */
+}
+
+.submit-button {
+    width: 85px; /* Set the width as needed */
+}
+
+.open_file {
+    width: 420px; /* Set the width as needed */
+}

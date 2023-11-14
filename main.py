@@ -1,8 +1,9 @@
 from flask import Flask, render_template, request, session, redirect, url_for, send_file
-from utilities import ensemble_info, ncbi_information, guide_info, make_seqience
+from utilities import ensemble_info, ncbi_information, guide_info, make_seqience, make_sequence_image
 from flask_wtf import FlaskForm
 from wtforms import StringField
 import pandas as pd
+import os
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'mysecretkey'  # Change this to a secure secret key
@@ -14,13 +15,22 @@ possible_elements = pd.unique(element_sequnces_sequences['Elements'] + '_' + ele
 out_dict = {'gene_name':'', 'ncbi_id':'', 'guide_seq':'', 'lha':400, 'rha':400, 
             'ensemble_gene_seq':'', 'gene_dict':'', 'CDS_seq':'', 'position_insert_start':'',
             'flank':100, 'guide':'', 'guide_cut_size':'', 'full_seq':'', 'possible_elements':possible_elements,
-            'selected_elements':[], 'selected_elements_color':'', 'make_sequence':False}
+            'selected_elements':[], 'selected_elements_color':'', 'make_sequence':False,
+            'all_sequences':element_sequnces_sequences, 'elements_list':[], 'full_seq_color':'',
+            'image_name':''}
 
 colors = {'2A motif':['#0000EE', '(0, 0, 238)', "<span class='blue-text'>"],
           'protein': ['#00C957', '(0, 201, 87)', "<span class='green-text'>"],
           'cloning' : ['#CDB38B', '(205, 179, 139)', "<span class='peach-text'>"],
           'Stop codon': ['#FF3030', '(255, 48, 48)', "<span class='red-text'>"],
-          'Terminator': ['#FF6103', '(255, 97, 3)', "<span class='orange-text'>"]}
+          'Terminator': ['#FF6103', '(255, 97, 3)', "<span class='orange-text'>"],
+          'custom':['#00C957', '(0, 201, 87)', "<span class='green-text'>"],
+          'Promoter':['#e0441d', '(224, 68, 29)', "<span class='redlight-text'>"],
+          'signal peptide':['#8b1de0', '(139, 29, 224)', "<span class='purple-text'>"],
+          'CAP binding site':['#8b1de0', '(139, 29, 224)', "<span class='purple-text'>"],
+          'Kozak sequence':['#8b1de0', '(139, 29, 224)', "<span class='purple-text'>"],
+          'transport':['#8b1de0', '(139, 29, 224)', "<span class='purple-text'>"],
+          'gene sequence':['#b5b5b1', '(181, 181, 177)', "<span class='grey-text'>"]}
 
 class Gene_info(FlaskForm):
     text_field = StringField('Gene name', default='')
@@ -36,7 +46,7 @@ class Arm_size(FlaskForm):
 
 
 
-def index(out_dict):
+def index(out_dict, element_sequnces_sequences):
 
     gene_info_form = Gene_info()
     guide_seq_form = Guide_sequence()
@@ -59,8 +69,6 @@ def index(out_dict):
             gene_name = gene_info_form.text_field.data
             ncbi_id = gene_info_form.text_field2.data
 
-            print(ncbi_id)
-
             out_dict['gene_name'] = gene_name
             out_dict['ncbi_id'] = ncbi_id
 
@@ -70,6 +78,10 @@ def index(out_dict):
 
             transcripts_info, CDS_seq = ncbi_information(ncbi_id)
             out_dict['CDS_seq'] = CDS_seq
+
+            # Create output directory
+            output_directory = 'static/outputs/' + gene_name
+            os.makedirs(output_directory, exist_ok=True)
 
         if 'guide_seq_form_submit' in request.form:
             guide_seq = guide_seq_form.text_field3.data
@@ -83,6 +95,7 @@ def index(out_dict):
             out_dict['guide_cut_size'] = guide_cut_size
 
         if 'make_seq_submit' in request.form:
+
             out_dict['make_sequence'] = True
 
             lha = arm_size_form.text_field4.data
@@ -107,35 +120,28 @@ def index(out_dict):
                                                                                 out_dict['lha'] , 
                                                                                 out_dict['rha'] , 
                                                                                 out_dict['selected_elements'], 
-                                                                                element_sequnces_sequences,
+                                                                                out_dict['all_sequences'],
                                                                                 colors)
 
-            # out_dict['full_seq'] = left_flank + LHA_sequence + insert_sequence + RHA_sequence + right_flank
-            out_dict['full_seq'] = ("<span class='black-text'>" + left_flank 
-                                    + "</span><span class='black-text'>" + LHA_sequence 
-                                    + insert_sequence_color 
-                                    + "<span class='violet-text'>" + RHA_sequence 
-                                    + "</span><span class='black-text'>" + right_flank 
-                                    + "</span>")
+            out_dict['full_seq'] = left_flank + LHA_sequence + insert_sequence + RHA_sequence + right_flank
+            out_dict['full_seq_color'] = ("<span class='black-text'>" + left_flank + "</span>"
+                                        + "<span class='black-text'>" + LHA_sequence + "</span>"
+                                        + insert_sequence_color 
+                                        + "<span class='black-text'>" + RHA_sequence + "</span>"
+                                        + "<span class='black-text'>" + right_flank + "</span>")
+
             
+            out_dict['elements_list'] = elements_list
+            
+            with open('out.txt', 'w') as f:
+                f.write(insert_sequence_color)
+
         if 'del_element_submit' in request.form:
             if len(out_dict['selected_elements'])>0:
                 _ = out_dict['selected_elements'].pop()
                 out_dict['selected_elements_colors'] = ', '.join([colors[e.split('_')[0]][2] + e + '</span>' 
                                                                         for e in out_dict['selected_elements']])
-                
-        
-        if 'file_upload_submit' in request.form:
-            if 'file' not in request.files:
-                return "No file part"
-            
-            file = request.files['file']
-            filename = file.filename
-            content_type = file.content_type
-            content = file.read()
-
-            print(filename, content_type, content)
-    
+                 
           
         selected_element = request.form.get('dropdown')
         checkbox_value = request.form.get('checkbox')
@@ -147,11 +153,47 @@ def index(out_dict):
                 out_dict['selected_elements'].append(selected_element)
             out_dict['selected_elements_colors'] = ', '.join([colors[e.split('_')[0]][2] + e + '</span>' 
                                                             for e in out_dict['selected_elements']])
-            print(out_dict['selected_elements_colors'])
 
-        item_to_delete = request.form.get('delete_item')
+        if 'file_upload_submit' in request.form:
+            if 'file' not in request.files:
+                return "No file part"
+            
+            file = request.files['file']
+            filename = file.filename
+            filename = filename.split('.')[0]
+            content_type = file.content_type
+            content = file.read()
+            content_str = content.decode('utf-8')
+            sequence = ''.join(content_str.split('\n')[1:]).strip()
 
-        
+            with open('out2.txt', 'w') as f:
+                f.write(content_str)
+
+            checkbox_value2 = request.form.get('checkbox2')
+
+            if checkbox_value2 == 'in_frame':
+                in_frame = 1
+            else:
+                in_frame = 0
+
+            if checkbox_value == 'reverse':
+                out_dict['selected_elements'].append('custom_' + filename + '_reverse')
+            else:
+                out_dict['selected_elements'].append('custom_' + filename)
+            out_dict['selected_elements_colors'] = ', '.join([colors[e.split('_')[0]][2] + e + '</span>' 
+                                                            for e in out_dict['selected_elements']])
+            
+            new_sequence = pd.DataFrame(data={'Elements':['custom'], 'Names':[filename], 
+                   'Sequence':[sequence], 'Describe':[''],
+                  'in frame': [in_frame]})
+            
+            out_dict['all_sequences'] = pd.concat([out_dict['all_sequences'], new_sequence])
+
+        if 'make_image_submit' in request.form:
+            make_sequence_image(out_dict['gene_name'], out_dict['elements_list'], colors, out_dict['full_seq'])
+            out_dict['image_name'] = 'outputs/' + out_dict['gene_name'] + '/map_for_' + out_dict['gene_name'] + '.png'
+            
+            
         gene_info_form.text_field.default = out_dict['gene_name']
         gene_info_form.text_field2.default = out_dict['ncbi_id']
         gene_info_form.process()
@@ -170,7 +212,7 @@ def index(out_dict):
 
 @app.route('/', methods=['GET', 'POST'])
 def root():
-    return index(out_dict)
+    return index(out_dict, element_sequnces_sequences)
 
 # @app.route('/button_clicked', methods=['POST'])
 # def button_clicked():
