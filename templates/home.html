@@ -31,7 +31,7 @@
         <input type="submit">
     </form>
     <h4>Guide sequence: {{ guide_seq }}</h4> -->
-    <h3>3. Enter arm sizes and flans size. </h3>
+    <h3>3. Enter arm sizes and flank size. </h3>
     <form method="POST">
         {{ forms['arm_size_form'].hidden_tag() }}
         <div>
@@ -92,6 +92,10 @@
         <input type="file" name="csv_file" accept=".csv">
         <input type="submit" value="Upload">
     </form> -->
+    <h3>6. Save files for SnapGene </h3>
+    <form method="POST">
+        <input type="submit" value="Save files" name="save_files_submit">
+    </form>
 
 
     

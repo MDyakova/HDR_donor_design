@@ -1,9 +1,11 @@
 from flask import Flask, render_template, request, session, redirect, url_for, send_file
-from utilities import ensemble_info, ncbi_information, guide_info, make_seqience, make_sequence_image
+from utilities import ensemble_info, ncbi_information, guide_info, make_seqience, make_sequence_image, save_files
 from flask_wtf import FlaskForm
 from wtforms import StringField
 import pandas as pd
 import os
+from io import BytesIO
+import zipfile
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'mysecretkey'  # Change this to a secure secret key
@@ -17,7 +19,7 @@ out_dict = {'gene_name':'', 'ncbi_id':'', 'guide_seq':'', 'lha':400, 'rha':400,
             'flank':100, 'guide':'', 'guide_cut_size':'', 'full_seq':'', 'possible_elements':possible_elements,
             'selected_elements':[], 'selected_elements_color':'', 'make_sequence':False,
             'all_sequences':element_sequnces_sequences, 'elements_list':[], 'full_seq_color':'',
-            'image_name':''}
+            'image_name':'', 'insert_seq':''}
 
 colors = {'2A motif':['#0000EE', '(0, 0, 238)', "<span class='blue-text'>"],
           'protein': ['#00C957', '(0, 201, 87)', "<span class='green-text'>"],
@@ -123,6 +125,7 @@ def index(out_dict, element_sequnces_sequences):
                                                                                 out_dict['all_sequences'],
                                                                                 colors)
 
+            out_dict['insert_seq'] = insert_sequence
             out_dict['full_seq'] = left_flank + LHA_sequence + insert_sequence + RHA_sequence + right_flank
             out_dict['full_seq_color'] = ("<span class='black-text'>" + left_flank + "</span>"
                                         + "<span class='black-text'>" + LHA_sequence + "</span>"
@@ -192,8 +195,32 @@ def index(out_dict, element_sequnces_sequences):
         if 'make_image_submit' in request.form:
             make_sequence_image(out_dict['gene_name'], out_dict['elements_list'], colors, out_dict['full_seq'])
             out_dict['image_name'] = 'outputs/' + out_dict['gene_name'] + '/map_for_' + out_dict['gene_name'] + '.png'
-            
-            
+
+        if 'save_files_submit' in request.form:
+            fasta_file, bed_file = save_files(out_dict['gene_name'], out_dict['flank'], 
+                                              out_dict['lha'], out_dict['rha'], 
+                                              out_dict['elements_list'], out_dict['insert_seq'], 
+                                              out_dict['full_seq'], colors)
+            # return (send_file(fasta_file, as_attachment=True, download_name=fasta_file.split('/')[-1]), 
+            #         send_file(bed_file, as_attachment=True, download_name=bed_file.split('/')[-1]))
+
+            # Create a BytesIO object to store the ZIP file
+            zip_buffer = BytesIO()
+
+            # Create a ZipFile object
+            with zipfile.ZipFile(zip_buffer, 'a', zipfile.ZIP_DEFLATED, False) as zip_file:
+                # Add the FASTA file to the ZIP file with a custom name
+                zip_file.write(fasta_file, arcname=fasta_file.split('/')[-1])
+
+                # Add the BED file to the ZIP file with a custom name
+                zip_file.write(bed_file, arcname=bed_file.split('/')[-1])
+
+            # Move the buffer's position to the beginning to ensure all the data is read
+            zip_buffer.seek(0)
+
+            # Return the ZIP file as an attachment
+            return send_file(zip_buffer, download_name=out_dict['gene_name'] + '.zip', as_attachment=True)
+           
         gene_info_form.text_field.default = out_dict['gene_name']
         gene_info_form.text_field2.default = out_dict['ncbi_id']
         gene_info_form.process()

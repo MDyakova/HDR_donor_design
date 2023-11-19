@@ -139,6 +139,8 @@ def make_seqience(flank_size, LHA_size, RHA_size, donor_elements, element_sequnc
 
     insert_sequence = ''
     insert_sequence_color = ''
+    coding_sequence = ''
+    new_start_codon = False
     for step, element in enumerate(donor_elements):
         element = '_'.join(element.split('_')[1:])
         if '_reverse' in element:
@@ -162,15 +164,34 @@ def make_seqience(flank_size, LHA_size, RHA_size, donor_elements, element_sequnc
         
         insert_sequence += seq_i
 
+        if elements_list[-1][4] == 'Promoter':
+            coding_sequence = ''
+            new_start_codon = True
+        coding_sequence += seq_i
+
         insert_sequence_color += colors[group][2]
         insert_sequence_color += seq_i
         insert_sequence_color += "</span>"
 
-        if (len(insert_sequence)%3 != 0) & (in_frame==1):
-            insert_sequence += 'N'*(3 - len(insert_sequence)%3)
-            insert_sequence_color += colors[group][2]
-            insert_sequence_color += 'N'*(3 - len(insert_sequence)%3)
-            insert_sequence_color += "</span>"
+        # if (len(insert_sequence)%3 != 0) & (in_frame==1):
+        #     insert_sequence += 'N'*(3 - len(insert_sequence)%3)
+        #     insert_sequence_color += colors[group][2]
+        #     insert_sequence_color += 'N'*(3 - len(insert_sequence)%3)
+        #     insert_sequence_color += "</span>"
+
+        if (len(coding_sequence)%3 != 0) & (in_frame==1):
+            if new_start_codon:
+                atg_ind = np.argmax([coding_sequence[i:i+3]=='ATG' for i in range(len(coding_sequence))])
+                insert_sequence += 'N'*(3 - len(coding_sequence[atg_ind:])%3)
+                coding_sequence += 'N'*(3 - len(coding_sequence[atg_ind:])%3)
+                insert_sequence_color += colors[group][2]
+                insert_sequence_color += 'N'*(3 - len(coding_sequence[atg_ind:])%3)
+                insert_sequence_color += "</span>"
+            else:
+                insert_sequence += 'N'*(3 - len(insert_sequence)%3)
+                insert_sequence_color += colors[group][2]
+                insert_sequence_color += 'N'*(3 - len(insert_sequence)%3)
+                insert_sequence_color += "</span>"
             
         # print(seq_i)
         # print()
@@ -201,3 +222,45 @@ def make_sequence_image(gene_name, elements_list, colors, full_sequence):
     cropped_record.plot(figure_width=10, strand_in_label_threshold=7, plot_sequence=False)
     plt.savefig('static/outputs/' + gene_name + '/map_for_' + gene_name + '.png', bbox_inches='tight')
 
+
+def save_files(gene_name, flank_size, LHA_size, RHA_size, elements_list, insert_sequence, full_sequence, colors):
+    date_today = str(date.today())
+    features_list_donor = []
+
+    # features_list_donor.append(['0', int(flank_size + 1), int(flank_size + LHA_size), 'LHA', 1000, '+',
+    #                                 0, 1, ','.join([str(int(c*255)) for c in m_colors.to_rgb(colors['gene sequence'][0])]), 
+    #                                 None, None, None])
+    # features_list_donor.append(['0', int(flank_size + LHA_size + len(insert_sequence) + 1), 
+    #                                 int(flank_size + LHA_size + len(insert_sequence) + RHA_size), 'RHA', 1000, '+',
+    #                                 0, 1, ','.join([str(int(c*255)) for c in m_colors.to_rgb(colors['gene sequence'][0])]), 
+    #                                 None, None, None])
+
+    print(elements_list)
+    for feature in elements_list:
+        start = feature[1]
+        end = feature[2]
+        name = feature[0]
+        color = colors[feature[4]][0]
+        direction = feature[3]
+        features_list_donor.append(['0', int(start), int(end), name, 1000, direction,
+                                    0, 1, ','.join([str(int(c*255)) for c in m_colors.to_rgb(color)]), None, None, None])
+        
+    features_df = pd.DataFrame(features_list_donor)
+    features_df[1] = features_df[1] - 1
+
+    features_df.to_csv('static/outputs/' + gene_name + '/' + gene_name + '_donor.bed', sep='\t', header=None, index=None)
+
+    with open('static/outputs/' + gene_name + '/' + gene_name + '_donor.bed', 'r') as f:
+        bed_file = f.read()
+
+    bed_file_name = 'static/outputs/' + gene_name + '/' + gene_name + '_donor_' + date_today + '.bed'
+    with open(bed_file_name, 'w') as f:
+        f.write('track itemRgb=On\n')
+        f.write(bed_file)
+
+    fasta_file_name = 'static/outputs/' + gene_name + '/' + gene_name + '_donor_sequence.fa'
+    with open(fasta_file_name, 'w') as f:
+        f.write('> ' + gene_name + '_donor_sequence' + '\n')
+        f.write(full_sequence + '\n')
+
+    return fasta_file_name, bed_file_name
