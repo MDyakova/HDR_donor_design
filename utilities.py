@@ -182,17 +182,20 @@ def make_seqience(flank_size, LHA_size, RHA_size, donor_elements, element_sequnc
         if (len(coding_sequence)%3 != 0) & (in_frame==1):
             if new_start_codon:
                 atg_ind = np.argmax([coding_sequence[i:i+3]=='ATG' for i in range(len(coding_sequence))])
-                insert_sequence += 'N'*(3 - len(coding_sequence[atg_ind:])%3)
-                coding_sequence += 'N'*(3 - len(coding_sequence[atg_ind:])%3)
-                insert_sequence_color += colors[group][2]
-                insert_sequence_color += 'N'*(3 - len(coding_sequence[atg_ind:])%3)
-                insert_sequence_color += "</span>"
+                new_start_codon = False
+                if len(coding_sequence[atg_ind:])%3!=0:
+                    insert_sequence += 'N'*(3 - len(coding_sequence[atg_ind:])%3)
+                    coding_sequence += 'N'*(3 - len(coding_sequence[atg_ind:])%3)
+                    insert_sequence_color += colors[group][2]
+                    insert_sequence_color += 'N'*(3 - len(coding_sequence[atg_ind:])%3)
+                    insert_sequence_color += "</span>"
             else:
                 insert_sequence += 'N'*(3 - len(insert_sequence)%3)
                 insert_sequence_color += colors[group][2]
                 insert_sequence_color += 'N'*(3 - len(insert_sequence)%3)
                 insert_sequence_color += "</span>"
-            
+
+           
         # print(seq_i)
         # print()
         # print(insert_sequence_color)

@@ -5,6 +5,13 @@
     <title>HDR Donor tool</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
 
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('.group').prop('disabled', false);
+        });
+    </script>
+
 </head>
 <body>
     <h1>Make HDR donor sequence.</h1>
@@ -52,7 +59,7 @@
     </form>
     <h4>LHA: {{ lha }}, RHA: {{ rha }}, Flank: {{ flank }}</h4> -->
     <h3>3. Choose elements for insert step by step and strands for them. </h3>
-    <form method="POST">
+    <!-- <form method="POST">
         <select name="dropdown">
             {% for element in out_dict['possible_elements'] %}
                 <option value="{{ element }}">{{ element }}</option>
@@ -61,7 +68,26 @@
         <label for="checkbox">Reverse</label>
         <input type="checkbox" id="checkbox" name="checkbox" value="reverse">
         <input type="submit" value="Submit">
+    </form> -->
+
+    <form method="POST">
+        <select name="dropdown">
+            {% set processed_groups = [] %}
+            {% for element in out_dict['possible_elements'] %}
+                {% if element['group'] not in processed_groups %}
+                    <optgroup label="{{ element['group'] }}" class="group">
+                        <option style="display:none"></option>
+                        {% set _ = processed_groups.append(element['group']) %}
+                    </optgroup>
+                {% endif %}
+                <option value="{{ element['group'] + '_' + element['name'] }}">{{ element['name'] }}</option>
+            {% endfor %}
+        </select>
+        <label for="checkbox">Reverse</label>
+        <input type="checkbox" id="checkbox" name="checkbox" value="reverse">
+        <input type="submit" value="Submit">
     </form>
+
     <h4>Or choose your fasta file</h4>
     <form method="post" enctype="multipart/form-data">
         <!-- <label for="file">or choose your fasta file</label> -->

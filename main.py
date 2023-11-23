@@ -12,7 +12,9 @@ app.config['SECRET_KEY'] = 'mysecretkey'  # Change this to a secure secret key
 
 element_sequnces_sequences = pd.read_excel('../HDR/data/all_sequences.xlsx', sheet_name='Sequences')
 element_sequnces_sequences = element_sequnces_sequences.groupby(by=['Elements', 'Names'], as_index=False).max()
-possible_elements = pd.unique(element_sequnces_sequences['Elements'] + '_' + element_sequnces_sequences['Names'])
+element_sequnces_sequences = element_sequnces_sequences.sort_values(by=['Elements', 'Names'], key=lambda col: col.str.lower())
+# possible_elements = pd.unique(element_sequnces_sequences['Elements'] + '_' + element_sequnces_sequences['Names'])
+possible_elements = [{'group': i, 'name': j} for i,j in zip(element_sequnces_sequences['Elements'], element_sequnces_sequences['Names'])]
 
 out_dict = {'gene_name':'', 'ncbi_id':'', 'guide_seq':'', 'lha':400, 'rha':400, 
             'ensemble_gene_seq':'', 'gene_dict':'', 'CDS_seq':'', 'position_insert_start':'',
@@ -32,7 +34,8 @@ colors = {'2A motif':['#0000EE', '(0, 0, 238)', "<span class='blue-text'>"],
           'CAP binding site':['#8b1de0', '(139, 29, 224)', "<span class='purple-text'>"],
           'Kozak sequence':['#8b1de0', '(139, 29, 224)', "<span class='purple-text'>"],
           'transport':['#8b1de0', '(139, 29, 224)', "<span class='purple-text'>"],
-          'gene sequence':['#b5b5b1', '(181, 181, 177)', "<span class='grey-text'>"]}
+          'gene sequence':['#b5b5b1', '(181, 181, 177)', "<span class='grey-text'>"],
+          '5UTR':['#3737c4', '(55, 55, 196)', "<span class='blue-light-text'>"]}
 
 class Gene_info(FlaskForm):
     text_field = StringField('Gene name', default='')
@@ -147,6 +150,9 @@ def index(out_dict, element_sequnces_sequences):
                  
           
         selected_element = request.form.get('dropdown')
+        # selected_group = request.form['dropdown_group']
+        # selected_element = request.form['dropdown_name']
+        print(selected_element)
         checkbox_value = request.form.get('checkbox')
         
         if selected_element is not None:

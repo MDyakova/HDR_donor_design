@@ -24,6 +24,11 @@ body {
     font-size: 14px;
 }
 
+.blue-light-text {
+    color: rgb(55, 55, 196);
+    font-size: 14px;
+}
+
 .green-text {
     color: rgb(0, 201, 87);
     font-size: 14px;
