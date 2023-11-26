@@ -10,7 +10,7 @@ import zipfile
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'mysecretkey'  # Change this to a secure secret key
 
-element_sequnces_sequences = pd.read_excel('../HDR/data/all_sequences.xlsx', sheet_name='Sequences')
+element_sequnces_sequences = pd.read_excel('src/data/all_sequences.xlsx', sheet_name='Sequences')
 element_sequnces_sequences = element_sequnces_sequences.groupby(by=['Elements', 'Names'], as_index=False).max()
 element_sequnces_sequences = element_sequnces_sequences.sort_values(by=['Elements', 'Names'], key=lambda col: col.str.lower())
 # possible_elements = pd.unique(element_sequnces_sequences['Elements'] + '_' + element_sequnces_sequences['Names'])
@@ -139,8 +139,8 @@ def index(out_dict, element_sequnces_sequences):
             
             out_dict['elements_list'] = elements_list
             
-            with open('out.txt', 'w') as f:
-                f.write(insert_sequence_color)
+            # with open('out.txt', 'w') as f:
+            #     f.write(insert_sequence_color)
 
         if 'del_element_submit' in request.form:
             if len(out_dict['selected_elements'])>0:
@@ -175,8 +175,8 @@ def index(out_dict, element_sequnces_sequences):
             content_str = content.decode('utf-8')
             sequence = ''.join(content_str.split('\n')[1:]).strip()
 
-            with open('out2.txt', 'w') as f:
-                f.write(content_str)
+            # with open('out2.txt', 'w') as f:
+            #     f.write(content_str)
 
             checkbox_value2 = request.form.get('checkbox2')
 
@@ -258,16 +258,16 @@ def root():
 #     out_dict['make_sequence'] = True
 #     return redirect(url_for('root'))
 
-@app.route('/download')
-def download_file():
+# @app.route('/download')
+# def download_file():
 
-    file_path = 'readme.txt'  # Replace with the actual path to your file
+#     file_path = 'readme.txt'  # Replace with the actual path to your file
 
-    # You can customize the filename that the user will see when downloading
-    filename = f'C:/Users/TargetGene/Documents/downloaded_file.txt'
+#     # You can customize the filename that the user will see when downloading
+#     filename = f'C:/Users/TargetGene/Documents/downloaded_file.txt'
 
-    # Use send_file to send the file to the user's browser for download
-    return send_file(file_path, as_attachment=True, download_name=filename)
+#     # Use send_file to send the file to the user's browser for download
+#     return send_file(file_path, as_attachment=True, download_name=filename)
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=5000)

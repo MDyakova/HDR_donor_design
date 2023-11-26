@@ -1,0 +1,8 @@
+FROM python:3.8
+
+RUN pip3 install --upgrade pip
+COPY src ./src
+RUN pip3 install -r ./src/requirements.txt
+RUN chmod -R 777 ./src
+EXPOSE 5000
+CMD python ./src/main.py

@@ -1,29 +1,22 @@
 import pandas as pd
 import numpy as np
 from pyensembl import EnsemblRelease
-import pyensembl
 import matplotlib.pyplot as plt
 from dna_features_viewer import GraphicFeature, GraphicRecord
-import seaborn as sns
-import mygene
 from Bio import Entrez
 from Bio import SeqIO
-from Bio import pairwise2
-from Bio.pairwise2 import format_alignment
-from liftover import get_lifter
-import urllib.request
-import os
 from matplotlib import colors as m_colors
 from datetime import date
 import requests
-import time
-import json
-from tqdm import tqdm_notebook
 from matplotlib import colors as m_colors
 
 def ensemble_info(gene_name):
     # release 109 uses human reference genome GRCh38
     data = EnsemblRelease(109)
+
+    data.download() 
+    data.index()
+
     gene = data.genes_by_name(gene_name)[0]
     exon_ids  = data.exon_ids_of_gene_name(gene_name)
     transcripts_id = data.transcript_ids_of_gene_name(gene_name)
@@ -35,18 +28,22 @@ def ensemble_info(gene_name):
     # if os.path.exists('outputs/' + gene_name) is not True:
     #     os.mkdir('outputs/' + gene_name)
         
-    # https://ftp.ensembl.org/pub/release-109/fasta/homo_sapiens/dna/
-    with open('../gene_information/databases/reference_genome/Homo_sapiens.GRCh38.dna.chromosome.' + chromosome_name + '.fa') as f:
-        seq = f.readlines()
+    # # https://ftp.ensembl.org/pub/release-109/fasta/homo_sapiens/dna/
+    # with open('../gene_information/databases/reference_genome/Homo_sapiens.GRCh38.dna.chromosome.' + chromosome_name + '.fa') as f:
+    #     seq = f.readlines()
         
-    seq = [i.replace('\n', '') for i in seq[1:]]
-    full_sequence = ''.join(seq)
+    # seq = [i.replace('\n', '') for i in seq[1:]]
+    # full_sequence = ''.join(seq)
 
 
     start_gene = gene.start - 1500
     end_gene = gene.end + 1500
 
-    gene_seq = list(full_sequence[(start_gene - 1):(end_gene)])
+    url = f'https://rest.ensembl.org/sequence/region/human/{chromosome_name}:{start_gene}-{end_gene}?content-type=application/json;version=109'
+    data = requests.get(url)
+    gene_seq = data.json()['seq']
+
+    # gene_seq = list(full_sequence[(start_gene - 1):(end_gene)])
     coord_list =  list([i for i in range(start_gene, end_gene + 1)])
 
     if strand == '-':
@@ -223,7 +220,7 @@ def make_sequence_image(gene_name, elements_list, colors, full_sequence):
     cropped_record = record.crop((1, len(full_sequence)))
     cropped_record.sequence = full_sequence
     cropped_record.plot(figure_width=10, strand_in_label_threshold=7, plot_sequence=False)
-    plt.savefig('static/outputs/' + gene_name + '/map_for_' + gene_name + '.png', bbox_inches='tight')
+    plt.savefig('src/static/outputs/' + gene_name + '/map_for_' + gene_name + '.png', bbox_inches='tight')
 
 
 def save_files(gene_name, flank_size, LHA_size, RHA_size, elements_list, insert_sequence, full_sequence, colors):
