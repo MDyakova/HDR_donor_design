@@ -290,7 +290,7 @@ def make_sequence_image(gene_name, elements_list, colors, full_sequence):
         figure_width=10, strand_in_label_threshold=7, plot_sequence=False
     )
     plt.savefig(
-        "src/static/outputs/" + gene_name + "/map_for_" + gene_name + ".png",
+        "static/outputs/" + gene_name + "/map_for_" + gene_name + ".png",
         bbox_inches="tight",
     )
 

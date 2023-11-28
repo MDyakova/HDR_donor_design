@@ -24,7 +24,7 @@ app.config["SECRET_KEY"] = "mysecretkey"  # fake key to work with flask server
 
 # table with all possible elements and sequences
 element_sequences = pd.read_excel(
-    "src/data/all_sequences.xlsx", sheet_name="Sequences"
+    "data/all_sequences.xlsx", sheet_name="Sequences"
 )
 element_sequences = element_sequences.groupby(
     by=["Elements", "Names"], as_index=False
