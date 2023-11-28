@@ -63,6 +63,7 @@ out_dict = {
     "full_seq_color": "",
     "image_name": "",
     "insert_seq": "",
+    "strand": "",
 }
 
 # colors for different elements
@@ -122,8 +123,9 @@ def index(out_dict):
             out_dict["gene_name"] = gene_name
             out_dict["ncbi_id"] = ncbi_id
 
-            ensemble_gene_seq, gene_dict = ensemble_info(gene_name)
+            ensemble_gene_seq, gene_dict, strand = ensemble_info(gene_name)
             out_dict["ensemble_gene_seq"] = ensemble_gene_seq
+            out_dict["strand"] = strand
             out_dict["gene_dict"] = str(gene_dict)
 
             _, cds_seq = ncbi_information(ncbi_id)
@@ -139,7 +141,7 @@ def index(out_dict):
             out_dict["guide_seq"] = guide_seq
 
             position_insert_start, guide_cut_size, guide = guide_info(
-                guide_seq, out_dict["CDS_seq"]
+                guide_seq, out_dict["CDS_seq"], out_dict["strand"]
             )
             out_dict["position_insert_start"] = position_insert_start
             out_dict["guide"] = guide

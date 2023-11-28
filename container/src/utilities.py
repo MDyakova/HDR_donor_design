@@ -54,7 +54,7 @@ def ensemble_info(gene_name):
     del gene_dict["gene_id"]
     del gene_dict["genome"]
 
-    return ensemble_gene_seq, gene_dict
+    return ensemble_gene_seq, gene_dict, strand
 
 
 def ncbi_information(ncbi_id):
@@ -112,13 +112,17 @@ def ncbi_information(ncbi_id):
     return transcripts_info, cds_seq
 
 
-def guide_info(guide_seq, cds_seq):
+def guide_info(guide_seq, cds_seq, strand):
     """
     Search guide position and start codon in gene.
     """
 
     compl_dict = {"A": "T", "T": "A", "G": "C", "C": "G"}
-    guide = "".join([compl_dict[i] for i in guide_seq][::-1])
+
+    if strand == '-':
+        guide = ''.join([compl_dict[i] for i in guide_seq][::-1])
+    else:
+        guide = guide_seq
 
     # search cut site
     guide_cut_size = len(guide) // 2
@@ -334,18 +338,18 @@ def save_files(
     features_df[1] = features_df[1] - 1
 
     features_df.to_csv(
-        "static/outputs/" + gene_name + "/" + gene_name + "_donor.bed",
+        "src/static/outputs/" + gene_name + "/" + gene_name + "_donor.bed",
         sep="\t",
         header=None,
         index=None,
     )
 
-    with open("static/outputs/" + gene_name + "/" + gene_name + "_donor.bed",
+    with open("src/static/outputs/" + gene_name + "/" + gene_name + "_donor.bed",
               "r", encoding="utf-8") as file:
         bed_file = file.read()
 
     bed_file_name = (
-        "static/outputs/"
+        "src/static/outputs/"
         + gene_name
         + "/"
         + gene_name
@@ -358,7 +362,7 @@ def save_files(
         file.write(bed_file)
 
     fasta_file_name = (
-        "static/outputs/" + gene_name + "/" + gene_name + "_donor_sequence.fa"
+        "src/static/outputs/" + gene_name + "/" + gene_name + "_donor_sequence.fa"
     )
     with open(fasta_file_name, "w", encoding="utf-8") as file:
         file.write("> " + gene_name + "_donor_sequence" + "\n")

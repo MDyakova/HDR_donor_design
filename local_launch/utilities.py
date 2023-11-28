@@ -54,7 +54,7 @@ def ensemble_info(gene_name):
     del gene_dict["gene_id"]
     del gene_dict["genome"]
 
-    return ensemble_gene_seq, gene_dict
+    return ensemble_gene_seq, gene_dict, strand
 
 
 def ncbi_information(ncbi_id):
@@ -112,13 +112,17 @@ def ncbi_information(ncbi_id):
     return transcripts_info, cds_seq
 
 
-def guide_info(guide_seq, cds_seq):
+def guide_info(guide_seq, cds_seq, strand):
     """
     Search guide position and start codon in gene.
     """
 
     compl_dict = {"A": "T", "T": "A", "G": "C", "C": "G"}
-    guide = "".join([compl_dict[i] for i in guide_seq][::-1])
+
+    if strand == '-':
+        guide = ''.join([compl_dict[i] for i in guide_seq][::-1])
+    else:
+        guide = guide_seq
 
     # search cut site
     guide_cut_size = len(guide) // 2
