@@ -5,6 +5,7 @@ import os
 from io import BytesIO
 import zipfile
 import pandas as pd
+import shutil
 
 from flask import Flask, render_template, request, send_file
 from flask_wtf import FlaskForm
@@ -405,6 +406,30 @@ def root():
     Load main page of server
     """
     return index(out_dict)
+
+@app.route("/outputs", methods=["GET", "POST"])
+def output_files():
+    """
+    Load page with output data folder
+    """
+    def list_files_and_sizes(folder_path):
+        files_and_sizes = []
+        for root, dirs, files in os.walk(folder_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                file_size = str(int(os.path.getsize(file_path) / 1024.0)) + 'kb'
+                files_and_sizes.append((file_path, file_size))
+
+        return files_and_sizes
+
+    folder_path = "src/static/outputs/"
+    files_and_sizes = list_files_and_sizes(folder_path)
+
+    if "clear_folder_submit" in request.form:
+        for directory, _, _ in os.walk(folder_path):
+            shutil.rmtree(directory)
+
+    return render_template("output_data.html", all_files = files_and_sizes)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

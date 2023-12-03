@@ -2,5 +2,23 @@
 <html>
 <head>
     <title>Output data</title>
+    <meta charset="UTF-8">
+    <title>HDR Donor tool</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('.group').prop('disabled', false);
+        });
+    </script>
 </head>
+<body>
+    <h1>Clear output directory:</h1>
+    <form method="POST">
+        <input type="submit" value="Clear directory" name="clear_folder_submit">
+    </form>
+    <h1>Files in output directory:</h1>
+    <h4>{{all_files}}</h4>
+</body>
 </html>
