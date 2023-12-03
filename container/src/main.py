@@ -77,7 +77,7 @@ colors = {
     "Promoter": ["#e0441d", "(224, 68, 29)", "<span class='redlight-text'>"],
     "signal peptide": ["#8b1de0", "(139, 29, 224)", "<span class='purple-text'>"],
     "CAP binding site": ["#8b1de0", "(139, 29, 224)", "<span class='purple-text'>"],
-    "Kozak sequence": ["#8b1de0", "(139, 29, 224)", "<span class='purple-text'>"],
+    "regulatory": ["#8b1de0", "(139, 29, 224)", "<span class='purple-text'>"],
     "transport": ["#8b1de0", "(139, 29, 224)", "<span class='purple-text'>"],
     "gene sequence": ["#b5b5b1", "(181, 181, 177)", "<span class='grey-text'>"],
     "5UTR": ["#3737c4", "(55, 55, 196)", "<span class='blue-light-text'>"],
@@ -116,45 +116,82 @@ def index(out_dict):
 
     if request.method == "POST":
         if "gene_info_form_submit" in request.form:
-            # Data from ensemble and ncbi
+            # Data from ensemble and ncbi, guide sequence
             gene_name = gene_info_form.text_field.data
             ncbi_id = gene_info_form.text_field2.data
+            guide_seq = gene_info_form.text_field3.data
+
+            if (gene_name == '') | (ncbi_id == '') | (guide_seq == ''):
+                text_error = 'enter all data'
+                out_dict["gene_dict"] = ("<span class='red-text'>" 
+                                         + 'Error: ' + str(text_error)
+                                         + "</span>")
+                return render_template("home.html", out_dict=out_dict, forms=forms)
+
 
             out_dict["gene_name"] = gene_name
             out_dict["ncbi_id"] = ncbi_id
 
-            ensemble_gene_seq, gene_dict, strand = ensemble_info(gene_name)
-            out_dict["ensemble_gene_seq"] = ensemble_gene_seq
-            out_dict["strand"] = strand
-            out_dict["gene_dict"] = str(gene_dict)
+            try:
+                ensemble_gene_seq, gene_dict, strand = ensemble_info(gene_name)
+                out_dict["ensemble_gene_seq"] = ensemble_gene_seq
+                out_dict["strand"] = strand
+                out_dict["gene_dict"] = 'Gene info: ' + str(gene_dict)
+            except Exception as e:
+                text_error = 'check gene name'
+                out_dict["gene_dict"] = ("<span class='red-text'>" 
+                                         + 'Error: ' + str(text_error)
+                                         + "</span>")
+                return render_template("home.html", out_dict=out_dict, forms=forms)
 
-            _, cds_seq = ncbi_information(ncbi_id)
-            out_dict["CDS_seq"] = cds_seq
+            try:
+                _, cds_seq = ncbi_information(ncbi_id)
+                out_dict["CDS_seq"] = cds_seq
+            except Exception as e:
+                text_error = 'check NCBI id'
+                out_dict["gene_dict"] = ("<span class='red-text'>" 
+                                         + 'Error: ' + str(text_error)
+                                         + "</span>")
+                return render_template("home.html", out_dict=out_dict, forms=forms)
 
             # Create output directory
             output_directory = "src/static/outputs/" + gene_name
             os.makedirs(output_directory, exist_ok=True)
 
             # guide sequence and position
-            guide_seq = gene_info_form.text_field3.data
+            # guide_seq = gene_info_form.text_field3.data
 
             out_dict["guide_seq"] = guide_seq
 
-            position_insert_start, guide_cut_size, guide = guide_info(
-                guide_seq, out_dict["CDS_seq"], out_dict["strand"]
-            )
-            out_dict["position_insert_start"] = position_insert_start
-            out_dict["guide"] = guide
-            out_dict["guide_cut_size"] = guide_cut_size
+            try:
+                position_insert_start, guide_cut_size, guide = guide_info(
+                    guide_seq, out_dict["CDS_seq"], out_dict["strand"]
+                )
+                out_dict["position_insert_start"] = position_insert_start
+                out_dict["guide"] = guide
+                out_dict["guide_cut_size"] = guide_cut_size
+            except Exception as e:
+                text_error = 'check guide sequence'
+                out_dict["gene_dict"] = ("<span class='red-text'>" 
+                                         + 'Error: ' + str(text_error)
+                                         + "</span>")
+                return render_template("home.html", out_dict=out_dict, forms=forms)
 
             # arm and flank sizes
             lha = gene_info_form.text_field4.data
             rha = gene_info_form.text_field5.data
             flank = gene_info_form.text_field6.data
 
-            out_dict["lha"] = int(lha)
-            out_dict["rha"] = int(rha)
-            out_dict["flank"] = int(flank)
+            try:
+                out_dict["lha"] = int(lha)
+                out_dict["rha"] = int(rha)
+                out_dict["flank"] = int(flank)
+            except Exception as e:
+                text_error = 'arms and flank sizes must be > 0'
+                out_dict["gene_dict"] = ("<span class='red-text'>" 
+                                         + 'Error: ' + str(text_error)
+                                         + "</span>")
+                return render_template("home.html", out_dict=out_dict, forms=forms)
 
         if "make_seq_submit" in request.form:
             # data to make full donor sequence

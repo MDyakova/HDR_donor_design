@@ -6,6 +6,8 @@ python3 -m flask run
 ## make docker container
 docker build -t container/dockerfile:vflask1 ./container/
 docker run -p 5000:5000 -d container/dockerfile:vflask1
+docker cp /path/to/your/local/file.txt container_name:/path/in/container/
+
 
 ## Check code quality
 python3 -m black main.py

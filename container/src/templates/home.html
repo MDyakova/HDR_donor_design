@@ -37,7 +37,7 @@
             <input type="submit" value="Submit" name="gene_info_form_submit">
         </div>
     </form>
-    <h4>Gene info: {{ out_dict['gene_dict'] }}</h4>
+    <h4>{{ out_dict['gene_dict']  | safe }}</h4>
     <h3>2. Choose elements for insert step by step and strands for them. </h3>
     <form method="POST">
         <select name="dropdown">
