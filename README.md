@@ -12,3 +12,6 @@ docker cp /path/to/your/local/file.txt container_name:/path/in/container/
 ## Check code quality
 python3 -m black main.py
 python3 lint.py --threshold 7
+
+## start unit-tests
+python3 -m pytest unit_tests.py

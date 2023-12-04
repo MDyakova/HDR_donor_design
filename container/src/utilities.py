@@ -1,7 +1,7 @@
 """
 Functions for working with input data
 """
-
+import os
 from datetime import date
 import pandas as pd
 import numpy as np
@@ -369,3 +369,13 @@ def save_files(
         file.write(full_sequence + "\n")
 
     return fasta_file_name, bed_file_name
+
+def list_files_and_sizes(folder_path):
+    files_and_sizes = []
+    for root, dirs, files in os.walk(folder_path):
+        for file in files:
+            file_path = os.path.join(root, file)
+            file_size = str(int(os.path.getsize(file_path) / 1024.0)) + 'kb'
+            files_and_sizes.append((file_path, file_size))
+
+    return files_and_sizes

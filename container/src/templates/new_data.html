@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Update sequence data</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('.group').prop('disabled', false);
+        });
+    </script>
+</head>
+<body>
+    <h3>Choose new excel file with sequences</h3>
+    <form method="post" enctype="multipart/form-data"> 
+        <div>
+            <input type="file" name="file" accept=".xlsx" class="open_file">
+            <input type="submit" value="Upload" name="sequences_file_upload_submit">
+        </div>
+    </form>
+    <h3>Save new data</h3>
+    <form method="POST">
+        <input type="submit" value="Save data" name="save_data_submit">
+    </form>
+    <h3>New elements:</h3>
+    <h4>(please, check all existing elements, reuse old if it's possible)</h4>
+    <h4>{{unknown_elements | safe}}</h4>
+
+    <div class="container mt-5">
+        <h2>New sequences</h2>
+        <!-- Display the table using Bootstrap styling (optional) -->
+        {{ tables[0]|safe }}
+    </div>
+    <div class="container mt-5">
+        <h2>All sequences</h2>
+        <!-- Display the table using Bootstrap styling (optional) -->
+        {{ tables[1]|safe }}
+    </div>
+</body>
+</html>

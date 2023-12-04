@@ -18,6 +18,7 @@ from utilities import (
     make_seqience,
     make_sequence_image,
     save_files,
+    list_files_and_sizes
 )
 
 app = Flask(__name__)
@@ -82,6 +83,7 @@ colors = {
     "transport": ["#8b1de0", "(139, 29, 224)", "<span class='purple-text'>"],
     "gene sequence": ["#b5b5b1", "(181, 181, 177)", "<span class='grey-text'>"],
     "5UTR": ["#3737c4", "(55, 55, 196)", "<span class='blue-light-text'>"],
+    "new": ["#0a0a0a", "(0, 0, 0)", "<span class='black-text'>"],
 }
 
 
@@ -412,15 +414,6 @@ def output_files():
     """
     Load page with output data folder
     """
-    def list_files_and_sizes(folder_path):
-        files_and_sizes = []
-        for root, dirs, files in os.walk(folder_path):
-            for file in files:
-                file_path = os.path.join(root, file)
-                file_size = str(int(os.path.getsize(file_path) / 1024.0)) + 'kb'
-                files_and_sizes.append((file_path, file_size))
-
-        return files_and_sizes
 
     folder_path = "src/static/outputs/"
     files_and_sizes = list_files_and_sizes(folder_path)
@@ -430,6 +423,54 @@ def output_files():
             shutil.rmtree(directory)
 
     return render_template("output_data.html", all_files = files_and_sizes)
+
+@app.route("/data", methods=["GET", "POST"])
+def new_data():
+    """
+    Update data sequences
+    """
+    unknown_elements = ''
+    new_elements = pd.DataFrame([['', '', '', '', '']], 
+                            columns=('Elements', 
+                                     'Names', 
+                                     'Sequence', 
+                                     'Describe', 
+                                     'in frame'))
+    check_table = new_elements.copy()
+
+    if "sequences_file_upload_submit" in request.form:
+        # upload fasta file with new element
+        if "file" not in request.files:
+            return "No file part"
+
+        file = request.files["file"]
+        filename = file.filename
+        filename = filename.split(".")[0]
+        new_elements = pd.read_excel(file)
+
+        elements_colors = list(colors.keys())
+        unknown_elements = [i for i in pd.unique(new_elements['Elements']) if i not in elements_colors]
+
+        check_table = new_elements[new_elements['Elements'].apply(lambda p: p  in unknown_elements)]
+
+        new_color = colors['new']
+        for new_el in unknown_elements:
+            colors[new_el] = new_color
+
+    if "save_data_submit" in request.form:
+        new_elements.to_excel("src/data/all_sequences.xlsx", sheet_name="Sequences", index=None)
+        message = 'Please, restart program'
+        message = ("<span class='red-text'>" 
+                    + 'Error: ' + str(message)
+                    + "</span>")
+        return render_template("new_data.html", unknown_elements = message, 
+                           tables=[check_table.to_html(classes='table table-striped'), 
+                                   new_elements.to_html(classes='table table-striped')])
+
+
+    return render_template("new_data.html", unknown_elements = unknown_elements, 
+                           tables=[check_table.to_html(classes='table table-striped'), 
+                                   new_elements.to_html(classes='table table-striped')])
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
