@@ -4,11 +4,17 @@
 python3 -m flask run
 
 ## make docker container
-docker build -t container/dockerfile:vflask1 ./container/
+<!-- docker build -t container/dockerfile:vflask1 ./container/
 docker run -p 5000:5000 -d container/dockerfile:vflask1
-docker cp /path/to/your/local/file.txt container_name:/path/in/container/
+docker cp /path/to/your/local/file.txt container_name:/path/in/container/ -->
 docker run -p 5000:5000 -v ${PWD}\outputs_flask:/src/static/outputs -d dockerfile:vflask1 
 docker build -t dockerfile:vflask1 ./    
+
+## docker hub
+docker tag dockerfile:vflask1 mdyakova/hdr_donor_for_crisprcas9:flaskv1 
+docker login
+docker push mdyakova/hdr_donor_for_crisprcas9:flaskv1
+
 
 
 ## Check code quality

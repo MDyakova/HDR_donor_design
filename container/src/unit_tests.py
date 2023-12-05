@@ -21,7 +21,7 @@ from utilities import (
 
 # table with all possible elements and sequences
 element_sequences = pd.read_excel(
-    "data/all_sequences.xlsx", sheet_name="Sequences"
+    "static/data/all_sequences.xlsx", sheet_name="Sequences"
 )
 element_sequences = element_sequences.groupby(
     by=["Elements", "Names"], as_index=False
