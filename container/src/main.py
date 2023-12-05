@@ -409,68 +409,69 @@ def root():
     """
     return index(out_dict)
 
-@app.route("/outputs", methods=["GET", "POST"])
-def output_files():
-    """
-    Load page with output data folder
-    """
 
-    folder_path = "src/static/outputs/"
-    files_and_sizes = list_files_and_sizes(folder_path)
+# @app.route("/outputs", methods=["GET", "POST"])
+# def output_files():
+#     """
+#     Load page with output data folder
+#     """
 
-    if "clear_folder_submit" in request.form:
-        for directory, _, _ in os.walk(folder_path):
-            shutil.rmtree(directory)
+#     folder_path = "src/static/outputs/"
+#     files_and_sizes = list_files_and_sizes(folder_path)
 
-    return render_template("output_data.html", all_files = files_and_sizes)
+#     if "clear_folder_submit" in request.form:
+#         for directory, _, _ in os.walk(folder_path):
+#             shutil.rmtree(directory)
 
-@app.route("/data", methods=["GET", "POST"])
-def new_data():
-    """
-    Update data sequences
-    """
-    unknown_elements = ''
-    new_elements = pd.DataFrame([['', '', '', '', '']], 
-                            columns=('Elements', 
-                                     'Names', 
-                                     'Sequence', 
-                                     'Describe', 
-                                     'in frame'))
-    check_table = new_elements.copy()
+#     return render_template("output_data.html", all_files = files_and_sizes)
 
-    if "sequences_file_upload_submit" in request.form:
-        # upload fasta file with new element
-        if "file" not in request.files:
-            return "No file part"
+# @app.route("/data", methods=["GET", "POST"])
+# def new_data():
+#     """
+#     Update data sequences
+#     """
+#     unknown_elements = ''
+#     new_elements = pd.DataFrame([['', '', '', '', '']], 
+#                             columns=('Elements', 
+#                                      'Names', 
+#                                      'Sequence', 
+#                                      'Describe', 
+#                                      'in frame'))
+#     check_table = new_elements.copy()
 
-        file = request.files["file"]
-        filename = file.filename
-        filename = filename.split(".")[0]
-        new_elements = pd.read_excel(file)
+#     if "sequences_file_upload_submit" in request.form:
+#         # upload fasta file with new element
+#         if "file" not in request.files:
+#             return "No file part"
 
-        elements_colors = list(colors.keys())
-        unknown_elements = [i for i in pd.unique(new_elements['Elements']) if i not in elements_colors]
+#         file = request.files["file"]
+#         filename = file.filename
+#         filename = filename.split(".")[0]
+#         new_elements = pd.read_excel(file)
 
-        check_table = new_elements[new_elements['Elements'].apply(lambda p: p  in unknown_elements)]
+#         elements_colors = list(colors.keys())
+#         unknown_elements = [i for i in pd.unique(new_elements['Elements']) if i not in elements_colors]
 
-        new_color = colors['new']
-        for new_el in unknown_elements:
-            colors[new_el] = new_color
+#         check_table = new_elements[new_elements['Elements'].apply(lambda p: p  in unknown_elements)]
 
-    if "save_data_submit" in request.form:
-        new_elements.to_excel("src/data/all_sequences.xlsx", sheet_name="Sequences", index=None)
-        message = 'Please, restart program'
-        message = ("<span class='red-text'>" 
-                    + 'Error: ' + str(message)
-                    + "</span>")
-        return render_template("new_data.html", unknown_elements = message, 
-                           tables=[check_table.to_html(classes='table table-striped'), 
-                                   new_elements.to_html(classes='table table-striped')])
+#         new_color = colors['new']
+#         for new_el in unknown_elements:
+#             colors[new_el] = new_color
+
+#     if "save_data_submit" in request.form:
+#         new_elements.to_excel("src/data/all_sequences.xlsx", sheet_name="Sequences", index=None)
+#         message = 'Please, restart program'
+#         message = ("<span class='red-text'>" 
+#                     + 'Error: ' + str(message)
+#                     + "</span>")
+#         return render_template("new_data.html", unknown_elements = message, 
+#                            tables=[check_table.to_html(classes='table table-striped'), 
+#                                    new_elements.to_html(classes='table table-striped')])
 
 
-    return render_template("new_data.html", unknown_elements = unknown_elements, 
-                           tables=[check_table.to_html(classes='table table-striped'), 
-                                   new_elements.to_html(classes='table table-striped')])
+#     return render_template("new_data.html", unknown_elements = unknown_elements, 
+#                            tables=[check_table.to_html(classes='table table-striped'), 
+#                                    new_elements.to_html(classes='table table-striped')])
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
