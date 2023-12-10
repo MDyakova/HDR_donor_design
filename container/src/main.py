@@ -67,7 +67,8 @@ out_dict = {
     "image_name": "",
     "insert_seq": "",
     "strand": "",
-    "guide_in_cds_pos": ""
+    "guide_in_cds_pos": "",
+    "files_name": ""
 }
 
 # colors for different elements
@@ -171,7 +172,7 @@ def index(out_dict):
 
             try:
                 position_insert_start, guide_cut_size, guide, guide_in_cds_pos = guide_info(
-                    guide_seq, out_dict["CDS_seq"], out_dict["strand"]
+                    guide_seq, out_dict["CDS_seq"], out_dict["strand"], out_dict["ensemble_gene_seq"]
                 )
                 out_dict["position_insert_start"] = position_insert_start
                 out_dict["guide"] = guide
@@ -356,11 +357,15 @@ def index(out_dict):
 
         if "save_files_submit" in request.form:
             # save files for SnapGene
+            files_name = request.form['save_files_input']
+            out_dict["files_name"] = files_name
+
             fasta_file, bed_file = save_files(
                 out_dict["gene_name"],
                 out_dict["elements_list"],
                 out_dict["full_seq"],
                 colors,
+                out_dict["files_name"]
             )
 
             # Create a BytesIO object to store the ZIP file
@@ -382,7 +387,7 @@ def index(out_dict):
             # Return the ZIP file as an attachment
             return send_file(
                 zip_buffer,
-                download_name=out_dict["gene_name"] + ".zip",
+                download_name=out_dict["files_name"] + ".zip",
                 as_attachment=True,
             )
 

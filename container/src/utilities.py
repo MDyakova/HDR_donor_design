@@ -117,17 +117,39 @@ def ncbi_information(ncbi_id):
     return transcripts_info, cds_seq
 
 
-def guide_info(guide_seq, cds_seq, strand):
+def guide_info(guide_seq, cds_seq, strand, ensemble_gene_seq):
     """
     Search guide position and start codon in gene.
     """
 
     compl_dict = {"A": "T", "T": "A", "G": "C", "C": "G"}
 
-    if strand == '-':
-        guide = ''.join([compl_dict[i] for i in guide_seq][::-1])
+    if ';' not in guide_seq:
+        if strand == '-':
+            guide = ''.join([compl_dict[i] for i in guide_seq][::-1])
+        else:
+            guide = guide_seq
     else:
-        guide = guide_seq
+        left_guide, right_guide = guide_seq.split(';')
+        left_guide = left_guide.strip()
+        right_guide = right_guide.strip()
+        
+        if left_guide not in ensemble_gene_seq:
+            left_guide = ''.join([compl_dict[i] for i in left_guide][::-1])
+        if right_guide not in ensemble_gene_seq:
+            right_guide = ''.join([compl_dict[i] for i in right_guide][::-1])
+        
+        left_guide_start = len(ensemble_gene_seq.split(left_guide)[0])
+        right_guide_start = len(ensemble_gene_seq.split(right_guide)[0])
+        
+        if left_guide_start>right_guide_start:
+            guide = (right_guide 
+                    + ensemble_gene_seq.split(right_guide)[1].split(left_guide)[0] 
+                    + left_guide)
+        else:
+            guide = (left_guide 
+                    + ensemble_gene_seq.split(left_guide)[1].split(right_guide)[0] 
+                    + right_guide)  
 
     # search cut site
     guide_cut_size = len(guide) // 2
@@ -335,6 +357,7 @@ def save_files(
     elements_list,
     full_sequence,
     colors,
+    files_name
 ):
     """
     Save all files for SnapGene
@@ -369,13 +392,13 @@ def save_files(
     features_df[1] = features_df[1] - 1
 
     features_df.to_csv(
-        "src/static/outputs/" + gene_name + "/" + gene_name + "_donor.bed",
+        "src/static/outputs/" + gene_name + "/" + files_name + "_donor.bed",
         sep="\t",
         header=None,
         index=None,
     )
 
-    with open("src/static/outputs/" + gene_name + "/" + gene_name + "_donor.bed",
+    with open("src/static/outputs/" + gene_name + "/" + files_name + "_donor.bed",
               "r", encoding="utf-8") as file:
         bed_file = file.read()
 
@@ -383,7 +406,7 @@ def save_files(
         "src/static/outputs/"
         + gene_name
         + "/"
-        + gene_name
+        + files_name
         + "_donor_"
         + date_today
         + ".bed"
@@ -393,7 +416,7 @@ def save_files(
         file.write(bed_file)
 
     fasta_file_name = (
-        "src/static/outputs/" + gene_name + "/" + gene_name + "_donor_sequence.fa"
+        "src/static/outputs/" + gene_name + "/" + files_name + "_donor_sequence.fa"
     )
     with open(fasta_file_name, "w", encoding="utf-8") as file:
         file.write("> " + gene_name + "_donor_sequence" + "\n")
