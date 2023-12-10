@@ -11,6 +11,11 @@ from dna_features_viewer import GraphicFeature, GraphicRecord
 from Bio import Entrez, SeqIO
 from matplotlib import colors as m_colors
 import requests
+import urllib.request
+
+promoters = pd.read_table('src/static/data/human_epdnew_V33OJ.bed', 
+                          header=None, 
+                          names=('Chr', 'start', 'end', 'promoter_id', 'v', 'strand'))
 
 def ensemble_info(gene_name):
     """
@@ -145,11 +150,19 @@ def guide_info(guide_seq, cds_seq, strand):
     cut_site_codon_pos = codon_positions[guide_cut_size]
     position_insert_start = guide_cut_size - cut_site_codon_pos
 
-    return position_insert_start, guide_cut_size, guide
+    return position_insert_start, guide_cut_size, guide, guide_in_cds_pos
 
 
 def make_seqience(
-    flank_size, lha_size, rha_size, donor_elements, element_sequnces, colors
+    flank_size, 
+    lha_size, 
+    rha_size, 
+    donor_elements, 
+    element_sequnces, 
+    colors, 
+    guide_in_cds_pos, 
+    promoter_list,
+    left_seq
 ):
     """
     Make insert sequence for all selected elements.
@@ -166,6 +179,24 @@ def make_seqience(
     elements_list.append(
         ["LHA", flank_size + 1, flank_size + lha_size, "+", "gene sequence"]
     )
+
+    if guide_in_cds_pos < lha_size:
+        atg_start = flank_size + lha_size - guide_in_cds_pos + 2
+        elements_list.append(['ATG_gene', atg_start, atg_start + 3, '+', 'Start codon'])
+
+     
+    for p_sequence in promoter_list:
+        if p_sequence in left_seq:
+            promoter_start = len(left_seq.split(p_sequence)[0])
+            promoter_end = promoter_start + len(p_sequence)
+            elements_list.append(['Promoter_gene', promoter_start, promoter_end, '+', 'Promoter'])
+
+        else:
+            for delta in range(1, len(p_sequence)//2):
+                if p_sequence[delta:] in left_seq:
+                    promoter_start = len(left_seq.split(p_sequence[delta:])[0])
+                    promoter_end = promoter_start + len(p_sequence[delta:])
+                    elements_list.append(['Promoter_gene', promoter_start, promoter_end, '+', 'Promoter'])
 
     insert_sequence = ""
     insert_sequence_color = ""
@@ -379,3 +410,26 @@ def list_files_and_sizes(folder_path):
             files_and_sizes.append((file_path, file_size))
 
     return files_and_sizes
+
+def find_promoter(gene_name):
+    """
+    Find promoter sequence in LHA
+    """
+    promoter_gene = promoters[promoters['promoter_id'].apply(lambda p: gene_name == p.split('_')[0])]
+
+    promoter_list = [] 
+    p_sequence = ''
+    for promoter_id in pd.unique(promoter_gene['promoter_id']):
+        url = 'https://epd.expasy.org/cgi-bin/epd/get_doc?db=hgEpdNew&format=genome&entry=' + promoter_id
+
+        fp = urllib.request.urlopen(url)
+        mybytes = fp.read()
+        html = mybytes.decode("utf8")
+        fp.close()
+
+        p_sequence = html.split('Sequence:</td><td>')[1].split('</td></tr>')[0]
+        p_sequence = p_sequence.upper()
+        
+        promoter_list.append(p_sequence)
+
+    return promoter_list

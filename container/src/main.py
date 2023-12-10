@@ -18,7 +18,8 @@ from utilities import (
     make_seqience,
     make_sequence_image,
     save_files,
-    list_files_and_sizes
+    list_files_and_sizes,
+    find_promoter
 )
 
 app = Flask(__name__)
@@ -66,6 +67,7 @@ out_dict = {
     "image_name": "",
     "insert_seq": "",
     "strand": "",
+    "guide_in_cds_pos": ""
 }
 
 # colors for different elements
@@ -73,7 +75,8 @@ colors = {
     "2A motif": ["#0000EE", "(0, 0, 238)", "<span class='blue-text'>"],
     "protein": ["#00C957", "(0, 201, 87)", "<span class='green-text'>"],
     "cloning": ["#CDB38B", "(205, 179, 139)", "<span class='peach-text'>"],
-    "Stop codon": ["#FF3030", "(255, 48, 48)", "<span class='red-text'>"],
+    "Stop codon": ["#330d70", "(118, 73, 191)", "<span class='violent-text'>"],
+    "Start codon": ["#330d70", "(118, 73, 191)", "<span class='violent-text'>"],
     "Terminator": ["#FF6103", "(255, 97, 3)", "<span class='orange-text'>"],
     "custom": ["#00C957", "(0, 201, 87)", "<span class='green-text'>"],
     "Promoter": ["#e0441d", "(224, 68, 29)", "<span class='redlight-text'>"],
@@ -103,7 +106,7 @@ class GeneInfo(FlaskForm):
         "Size of RHA", default="", render_kw={"style": "width: 50px;"}
     )
     text_field6 = StringField(
-        "Flank size", default="", render_kw={"style": "width: 50px;"}
+        "Primers place size", default="", render_kw={"style": "width: 50px;"}
     )
 
 def index(out_dict):
@@ -167,12 +170,14 @@ def index(out_dict):
             out_dict["guide_seq"] = guide_seq
 
             try:
-                position_insert_start, guide_cut_size, guide = guide_info(
+                position_insert_start, guide_cut_size, guide, guide_in_cds_pos = guide_info(
                     guide_seq, out_dict["CDS_seq"], out_dict["strand"]
                 )
                 out_dict["position_insert_start"] = position_insert_start
                 out_dict["guide"] = guide
                 out_dict["guide_cut_size"] = guide_cut_size
+                out_dict["guide_in_cds_pos"] = guide_in_cds_pos
+
             except Exception as e:
                 text_error = 'check guide sequence'
                 out_dict["gene_dict"] = ("<span class='red-text'>" 
@@ -219,6 +224,9 @@ def index(out_dict):
                 : out_dict["flank"]
             ]
 
+            promoter_list = find_promoter(out_dict["gene_name"])
+            left_seq = left_flank + lha_sequence
+
             insert_sequence = ""
 
             elements_list, insert_sequence, insert_sequence_color = make_seqience(
@@ -228,6 +236,9 @@ def index(out_dict):
                 out_dict["selected_elements"],
                 out_dict["all_sequences"],
                 colors,
+                out_dict["guide_in_cds_pos"],
+                promoter_list,
+                left_seq
             )
 
             out_dict["insert_seq"] = insert_sequence

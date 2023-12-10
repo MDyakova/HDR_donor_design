@@ -82,6 +82,12 @@ body {
     /* background-color:rgb(249, 248, 248) */
 }
 
+.violent-text {
+    color: rgb(118, 73, 191);
+    font-size: 14px;
+    /* background-color:rgb(249, 248, 248) */
+}
+
 .form-group {
     /* display: flex;
     flex-direction: column; */

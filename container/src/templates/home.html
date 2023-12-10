@@ -14,6 +14,7 @@
 
 </head>
 <body>
+    <img src="/static/logo.png" alt="Positioned Image" class="positioned-image" style="position: absolute; right: 50px; top: 0px;">
     <h1>Make HDR donor sequence.</h1>
     <h3>1. Enter gene name, NCBI id for transcript, guide sequence with gap, arm sizes and flank size. </h3>
     <form method="POST">
@@ -24,6 +25,7 @@
             <h4></h4>
         </div>
         <div>
+            <h4>Input full guide sequence with gap for one strand or two guides left and right separated by semicolons</h4>
             {{ forms['gene_info_form'].text_field3.label }} {{ forms['gene_info_form'].text_field3 }}
             <h4></h4>
         </div>
