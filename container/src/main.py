@@ -125,8 +125,11 @@ def index(out_dict):
         if "gene_info_form_submit" in request.form:
             # Data from ensemble and ncbi, guide sequence
             gene_name = gene_info_form.text_field.data
+            gene_name = gene_name.upper()
             ncbi_id = gene_info_form.text_field2.data
+            ncbi_id = ncbi_id.upper()
             guide_seq = gene_info_form.text_field3.data
+            guide_seq = guide_seq.upper()
 
             if (gene_name == '') | (ncbi_id == '') | (guide_seq == ''):
                 text_error = 'enter all data'
