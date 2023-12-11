@@ -226,7 +226,7 @@ def index(out_dict):
             ]
 
             promoter_list = find_promoter(out_dict["gene_name"])
-            left_seq = left_flank + lha_sequence
+            left_seq = left_flank + lha_sequence + rha_sequence[:20]
 
             insert_sequence = ""
 
@@ -239,7 +239,9 @@ def index(out_dict):
                 colors,
                 out_dict["guide_in_cds_pos"],
                 promoter_list,
-                left_seq
+                left_seq,
+                out_dict["CDS_seq"]
+
             )
 
             out_dict["insert_seq"] = insert_sequence

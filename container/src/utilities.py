@@ -184,7 +184,8 @@ def make_seqience(
     colors, 
     guide_in_cds_pos, 
     promoter_list,
-    left_seq
+    left_seq,
+    cds_seq
 ):
     """
     Make insert sequence for all selected elements.
@@ -202,9 +203,11 @@ def make_seqience(
         ["LHA", flank_size + 1, flank_size + lha_size, "+", "gene sequence"]
     )
 
-    if guide_in_cds_pos < lha_size:
-        atg_start = flank_size + lha_size - guide_in_cds_pos + 2
-        elements_list.append(['ATG_gene', atg_start, atg_start + 3, '+', 'Start codon'])
+    atg_20_seq = cds_seq[:20]
+    if atg_20_seq in left_seq:
+        atg_start = len(left_seq.split(atg_20_seq)[0])
+        if atg_start<insert_start:
+            elements_list.append(['ATG_gene', atg_start, atg_start + 3, '+', 'Start codon'])
 
      
     for p_sequence in promoter_list:
