@@ -88,6 +88,12 @@ body {
     /* background-color:rgb(249, 248, 248) */
 }
 
+.wave-text {
+    color: rgb(5, 240, 201);
+    font-size: 14px;
+    /* background-color:rgb(249, 248, 248) */
+}
+
 .form-group {
     /* display: flex;
     flex-direction: column; */

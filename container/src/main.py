@@ -20,7 +20,8 @@ from utilities import (
     make_sequence_image,
     save_files,
     list_files_and_sizes,
-    find_promoter
+    find_promoter, 
+    gene_features
 )
 
 app = Flask(__name__)
@@ -70,7 +71,8 @@ out_dict = {
     "insert_seq": "",
     "strand": "",
     "guide_in_cds_pos": "",
-    "files_name": ""
+    "files_name": "",
+    "features_list":[]
 }
 
 out_dict_start = out_dict.copy()
@@ -92,6 +94,7 @@ colors = {
     "gene sequence": ["#b5b5b1", "(181, 181, 177)", "<span class='grey-text'>"],
     "5UTR": ["#3737c4", "(55, 55, 196)", "<span class='blue-light-text'>"],
     "new": ["#0a0a0a", "(0, 0, 0)", "<span class='black-text'>"],
+    "transcript_feature": ["#05f0c9", "(5, 240, 201)", "<span class='wave-text'>"],
 }
 
 
@@ -169,9 +172,11 @@ def index(out_dict):
                 return render_template("home.html", out_dict=out_dict, forms=forms)
 
             try:
-                _, cds_seq, cds_seq_long = ncbi_information(ncbi_id)
+                _, cds_seq, cds_seq_long, features_list, refseq_sequence = ncbi_information(ncbi_id)
                 out_dict["CDS_seq"] = cds_seq
                 out_dict["CDS_seq_long"] = cds_seq_long
+                out_dict["features_list"] = features_list
+                out_dict["refseq_seq"] = refseq_sequence
             except Exception as e:
                 text_error = 'check NCBI id'
                 out_dict["gene_dict"] = ("<span class='red-text'>" 
@@ -189,14 +194,24 @@ def index(out_dict):
             out_dict["guide_seq"] = guide_seq
 
             try:
-                position_insert_start, guide_cut_size, guide, guide_in_cds_pos = guide_info(
+                (position_insert_start, 
+                 guide_cut_size, 
+                 guide, 
+                 guide_in_cds_pos, 
+                 guide_in_cds_seq, 
+                 guide_in_transcript_pos, 
+                 guide_pos) = guide_info(
                     guide_seq, out_dict["CDS_seq"], out_dict["strand"], 
-                    out_dict["ensemble_gene_seq"], out_dict["CDS_seq_long"]
+                    out_dict["ensemble_gene_seq"], out_dict["CDS_seq_long"], out_dict["refseq_seq"]
                 )
+
                 out_dict["position_insert_start"] = position_insert_start
                 out_dict["guide"] = guide
                 out_dict["guide_cut_size"] = guide_cut_size
                 out_dict["guide_in_cds_pos"] = guide_in_cds_pos
+                out_dict["guide_in_cds_seq"] = guide_in_cds_seq
+                out_dict["guide_in_transcript_pos"] = guide_in_transcript_pos
+                out_dict["guide_pos"] = guide_pos
 
             except Exception as e:
                 text_error = 'check guide sequence'
@@ -286,6 +301,12 @@ def index(out_dict):
                 + "</span>"
             )
 
+            elements_list = gene_features(out_dict["features_list"], 
+                                          out_dict["guide_in_cds_seq"], 
+                                          out_dict["guide_pos"], 
+                                          out_dict["guide_in_transcript_pos"], 
+                                          elements_list)
+            
             out_dict["elements_list"] = elements_list
 
         if "del_element_submit" in request.form:
