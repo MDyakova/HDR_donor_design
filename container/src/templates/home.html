@@ -102,10 +102,17 @@
     <h3>5. Save files for SnapGene </h3>
     <form method="POST">
         <div>
-        <input type="text" id="inputField" name="save_files_input" value="" style="width: 300px;">
+        <!-- <input type="text" id="inputField" name="save_files_input" value="" style="width: 300px;"> -->
+        {{ forms['save_files_form'].text_field7 }}
         </div>
         <div>
         <input type="submit" value="Save files" name="save_files_submit">
+        </div>
+    </form>
+    <h3>6. Clear forms </h3>
+    <form method="POST">
+        <div>
+        <input type="submit" value="Clear forms" name="clear_forms_submit">
         </div>
     </form>
   

@@ -113,11 +113,12 @@ def ncbi_information(ncbi_id):
         cds_end_pos = cds[2]
 
     cds_seq = refseq_sequence[cds_start_pos - 1 : cds_end_pos]
+    cds_seq_long = refseq_sequence[cds_start_pos - 22 : cds_end_pos + 21]
 
-    return transcripts_info, cds_seq
+    return transcripts_info, cds_seq, cds_seq_long
 
 
-def guide_info(guide_seq, cds_seq, strand, ensemble_gene_seq):
+def guide_info(guide_seq, cds_seq, strand, ensemble_gene_seq, cds_seq_long):
     """
     Search guide position and start codon in gene.
     """
@@ -163,6 +164,15 @@ def guide_info(guide_seq, cds_seq, strand, ensemble_gene_seq):
         guide_pos = len(guide.split(guide[-guide_cut_size:])[0])
     else:
         print("guide not found")
+        # CDS_seq = refseq_sequence[CDS_start_pos-1-21:CDS_end_pos+21]
+        if guide[:guide_cut_size] in cds_seq_long:
+            # guide_in_cds_seq = guide[:guide_cut_size]
+            guide_in_cds_pos = len(cds_seq_long.split(guide[:guide_cut_size])[0])
+            guide_pos = 0
+        elif guide[-guide_cut_size:] in cds_seq_long:
+            # guide_in_cds_seq = guide[-guide_cut_size:]
+            guide_in_cds_pos = len(cds_seq_long.split(guide[-guide_cut_size:])[0])
+            guide_pos = len(guide.split(guide[-guide_cut_size:])[0])
 
     codon_positions = {}
     for i, k in zip(range(len(guide)), range(len(guide))):
@@ -203,7 +213,7 @@ def make_seqience(
         ["LHA", flank_size + 1, flank_size + lha_size, "+", "gene sequence"]
     )
 
-    atg_20_seq = cds_seq[:20]
+    atg_20_seq = cds_seq[cds_seq.index('ATG'):][:20]
     if atg_20_seq in left_seq:
         atg_start = len(left_seq.split(atg_20_seq)[0])
         if atg_start<insert_start:
@@ -410,8 +420,6 @@ def save_files(
         + gene_name
         + "/"
         + files_name
-        + "_donor_"
-        + date_today
         + ".bed"
     )
     with open(bed_file_name, "w", encoding="utf-8") as file:
@@ -422,7 +430,7 @@ def save_files(
         "src/static/outputs/" + gene_name + "/" + files_name + "_donor_sequence.fa"
     )
     with open(fasta_file_name, "w", encoding="utf-8") as file:
-        file.write("> " + gene_name + "_donor_sequence" + "\n")
+        file.write("> " + gene_name + "\n")
         file.write(full_sequence + "\n")
 
     return fasta_file_name, bed_file_name

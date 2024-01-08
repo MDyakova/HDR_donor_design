@@ -6,6 +6,7 @@ from io import BytesIO
 import zipfile
 import pandas as pd
 import shutil
+from datetime import date
 
 from flask import Flask, render_template, request, send_file
 from flask_wtf import FlaskForm
@@ -52,6 +53,7 @@ out_dict = {
     "ensemble_gene_seq": "",
     "gene_dict": "",
     "CDS_seq": "",
+    "CDS_seq_long": "",
     "position_insert_start": "",
     "flank": 100,
     "guide": "",
@@ -70,6 +72,8 @@ out_dict = {
     "guide_in_cds_pos": "",
     "files_name": ""
 }
+
+out_dict_start = out_dict.copy()
 
 # colors for different elements
 colors = {
@@ -95,7 +99,7 @@ class GeneInfo(FlaskForm):
     """
     Information about ensemble and ncbi gene names or id
     """
-    text_field = StringField("Gene name", default="")
+    text_field = StringField("Ensemble gene name", default="")
     text_field2 = StringField("  NCBI id", default="")
     text_field3 = StringField(
         "Guide sequence", default="", render_kw={"style": "width: 550px;"}
@@ -110,15 +114,25 @@ class GeneInfo(FlaskForm):
         "Primers place size", default="", render_kw={"style": "width: 50px;"}
     )
 
+class SaveFiles(FlaskForm):
+    """
+    Information about ensemble and ncbi gene names or id
+    """
+    text_field7 = StringField("", default="", render_kw={"style": "width: 550px;"})
+
+
 def index(out_dict):
     """
     Launch main code to prepare input data to donor sequence
     """
 
     gene_info_form = GeneInfo()
+    save_files_form = SaveFiles()
 
     forms = {
-        "gene_info_form": gene_info_form
+        "gene_info_form": gene_info_form,
+        "save_files_form":save_files_form
+
     }
 
     if request.method == "POST":
@@ -155,8 +169,9 @@ def index(out_dict):
                 return render_template("home.html", out_dict=out_dict, forms=forms)
 
             try:
-                _, cds_seq = ncbi_information(ncbi_id)
+                _, cds_seq, cds_seq_long = ncbi_information(ncbi_id)
                 out_dict["CDS_seq"] = cds_seq
+                out_dict["CDS_seq_long"] = cds_seq_long
             except Exception as e:
                 text_error = 'check NCBI id'
                 out_dict["gene_dict"] = ("<span class='red-text'>" 
@@ -175,7 +190,8 @@ def index(out_dict):
 
             try:
                 position_insert_start, guide_cut_size, guide, guide_in_cds_pos = guide_info(
-                    guide_seq, out_dict["CDS_seq"], out_dict["strand"], out_dict["ensemble_gene_seq"]
+                    guide_seq, out_dict["CDS_seq"], out_dict["strand"], 
+                    out_dict["ensemble_gene_seq"], out_dict["CDS_seq_long"]
                 )
                 out_dict["position_insert_start"] = position_insert_start
                 out_dict["guide"] = guide
@@ -229,7 +245,10 @@ def index(out_dict):
             ]
 
             promoter_list = find_promoter(out_dict["gene_name"])
-            left_seq = left_flank + lha_sequence + rha_sequence[:20]
+            # left_seq = left_flank + lha_sequence + rha_sequence[:20]
+            left_seq = (left_flank 
+                        + out_dict["ensemble_gene_seq"].split(out_dict["guide"])[0][-(out_dict["lha"] - out_dict["position_insert_start"]):] 
+                        + out_dict["guide"])
 
             insert_sequence = ""
 
@@ -362,7 +381,8 @@ def index(out_dict):
 
         if "save_files_submit" in request.form:
             # save files for SnapGene
-            files_name = request.form['save_files_input']
+            # files_name = request.form['save_files_input']
+            files_name = save_files_form.text_field7.data
             out_dict["files_name"] = files_name
 
             fasta_file, bed_file = save_files(
@@ -395,6 +415,9 @@ def index(out_dict):
                 download_name=out_dict["files_name"] + ".zip",
                 as_attachment=True,
             )
+        
+        if "clear_forms_submit" in request.form:
+            out_dict = out_dict_start.copy()
 
         # Save selected parameters to input windows
         gene_info_form.text_field.default = out_dict["gene_name"]
@@ -408,8 +431,18 @@ def index(out_dict):
 
         gene_info_form.process()
 
+        date_today = str(date.today())
+        save_files_form.text_field7.default = ('Donor_' 
+                                               + out_dict["gene_name"] 
+                                               + '_' 
+                                               + out_dict["guide_seq"]
+                                               + '_'
+                                               + date_today)
+        save_files_form.process()
+
         forms = {
             "gene_info_form": gene_info_form,
+            "save_files_form":save_files_form
         }
 
         return render_template("home.html", out_dict=out_dict, forms=forms)
@@ -419,6 +452,15 @@ def index(out_dict):
     gene_info_form.text_field6.default = out_dict["flank"]
 
     gene_info_form.process()
+
+    date_today = str(date.today())
+    save_files_form.text_field7.default = ('Donor_' 
+                                            + out_dict["gene_name"] 
+                                            + '_' 
+                                            + out_dict["guide_seq"]
+                                            + '_'
+                                            + date_today)
+    save_files_form.process()
 
     return render_template("home.html", out_dict=out_dict, forms=forms)
 
