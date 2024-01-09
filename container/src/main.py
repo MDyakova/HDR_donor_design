@@ -62,7 +62,7 @@ out_dict = {
     "full_seq": "",
     "possible_elements": possible_elements,
     "selected_elements": [],
-    "selected_elements_color": "",
+    "selected_elements_colors": "",
     "make_sequence": False,
     "all_sequences": element_sequences,
     "elements_list": [],
@@ -72,7 +72,13 @@ out_dict = {
     "strand": "",
     "guide_in_cds_pos": "",
     "files_name": "",
-    "features_list":[]
+    "features_list":[],
+    "nn_error": "",
+    "refseq_seq":'',
+    "guide_in_cds_seq":'',
+    "guide_pos":'',
+    "guide_in_transcript_pos":''
+
 }
 
 out_dict_start = out_dict.copy()
@@ -281,6 +287,11 @@ def index(out_dict):
 
             )
 
+            if 'N' in insert_sequence:
+                out_dict["nn_error"] = ("<span class='red-text'>" 
+                                         + 'Attention! Frameshift in coding sequence. Added "N" nucleotides.'
+                                         + "</span>")
+
             out_dict["insert_seq"] = insert_sequence
             out_dict["full_seq"] = (
                 left_flank + lha_sequence + insert_sequence + rha_sequence + right_flank
@@ -438,7 +449,8 @@ def index(out_dict):
             )
         
         if "clear_forms_submit" in request.form:
-            out_dict = out_dict_start.copy()
+            for key in out_dict.keys():
+                out_dict[key] = out_dict_start[key]
 
         # Save selected parameters to input windows
         gene_info_form.text_field.default = out_dict["gene_name"]

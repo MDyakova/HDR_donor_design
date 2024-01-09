@@ -89,6 +89,7 @@
         <input type="submit" value="Make donor sequence" name="make_seq_submit">
     </form>
     <h4 class="wrap-text">{{ out_dict['full_seq_color'] | safe }}</h4>
+    <h4 class="wrap-text">{{ out_dict['nn_error'] | safe }}</h4>
     <h3>4. Elements </h3>
     <form method="POST">
         <input type="submit" value="Make image" name="make_image_submit">
