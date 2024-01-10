@@ -5,6 +5,7 @@ import os
 from io import BytesIO
 import zipfile
 import pandas as pd
+import numpy as np
 import shutil
 from datetime import date
 
@@ -21,7 +22,8 @@ from utilities import (
     save_files,
     list_files_and_sizes,
     find_promoter, 
-    gene_features
+    gene_features,
+    gene_bank_file
 )
 
 app = Flask(__name__)
@@ -77,7 +79,8 @@ out_dict = {
     "refseq_seq":'',
     "guide_in_cds_seq":'',
     "guide_pos":'',
-    "guide_in_transcript_pos":''
+    "guide_in_transcript_pos":'',
+    "delta_nucleotides":''
 
 }
 
@@ -258,6 +261,10 @@ def index(out_dict):
                     : (out_dict["rha"] - out_dict["guide_cut_size"])
                 ]
             )
+
+            delta_nucleotides = len(out_dict["guide"].split(out_dict["guide"][:out_dict["position_insert_start"]])[1].split(out_dict["guide"][-out_dict["guide_cut_size"]:])[0])
+            out_dict['delta_nucleotides'] = delta_nucleotides
+
             left_flank = out_dict["ensemble_gene_seq"].split(lha_sequence)[0][
                 -out_dict["flank"] :
             ]
@@ -312,11 +319,14 @@ def index(out_dict):
                 + "</span>"
             )
 
-            elements_list = gene_features(out_dict["features_list"], 
-                                          out_dict["guide_in_cds_seq"], 
-                                          out_dict["guide_pos"], 
-                                          out_dict["guide_in_transcript_pos"], 
-                                          elements_list)
+            if np.max(['exon' in i[0] for i in out_dict["features_list"]]):
+                elements_list = gene_features(out_dict["features_list"], 
+                                            out_dict["guide"], 
+                                            out_dict["guide_pos"], 
+                                            out_dict["guide_in_transcript_pos"], 
+                                            elements_list,
+                                            out_dict["position_insert_start"],
+                                            out_dict['delta_nucleotides'])
             
             out_dict["elements_list"] = elements_list
 
@@ -425,6 +435,10 @@ def index(out_dict):
                 out_dict["files_name"]
             )
 
+            date_today = str(date.today())
+            gbk_file = gene_bank_file(out_dict["gene_name"], out_dict["full_seq"], date_today, 
+                                            out_dict["elements_list"], colors, out_dict["files_name"])
+
             # Create a BytesIO object to store the ZIP file
             zip_buffer = BytesIO()
 
@@ -437,6 +451,9 @@ def index(out_dict):
 
                 # Add the BED file to the ZIP file with a custom name
                 zip_file.write(bed_file, arcname=bed_file.split("/")[-1])
+
+                # Add the GBK file to the ZIP file with a custom name
+                zip_file.write(gbk_file, arcname=gbk_file.split("/")[-1])
 
             # Move the buffer's position to the beginning to ensure all the data is read
             zip_buffer.seek(0)

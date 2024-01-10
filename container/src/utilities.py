@@ -231,21 +231,21 @@ def make_seqience(
     if atg_20_seq in left_seq:
         atg_start = len(left_seq.split(atg_20_seq)[0])
         if atg_start<insert_start:
-            elements_list.append(['ATG_gene', atg_start, atg_start + 3, '+', 'Start codon'])
+            elements_list.append(['ATG_gene', atg_start+1, atg_start + 3, '+', 'Start codon'])
 
      
     for p_sequence in promoter_list:
         if p_sequence in left_seq:
             promoter_start = len(left_seq.split(p_sequence)[0])
             promoter_end = promoter_start + len(p_sequence)
-            elements_list.append(['Promoter_gene', promoter_start, promoter_end, '+', 'Promoter'])
+            elements_list.append(['Promoter_gene', promoter_start+1, promoter_end, '+', 'Promoter'])
 
         else:
             for delta in range(1, len(p_sequence)//2):
                 if p_sequence[delta:] in left_seq:
                     promoter_start = len(left_seq.split(p_sequence[delta:])[0])
                     promoter_end = promoter_start + len(p_sequence[delta:])
-                    elements_list.append(['Promoter_gene', promoter_start, promoter_end, '+', 'Promoter'])
+                    elements_list.append(['Promoter_gene', promoter_start+1, promoter_end, '+', 'Promoter'])
 
     insert_sequence = ""
     insert_sequence_color = ""
@@ -482,7 +482,86 @@ def find_promoter(gene_name):
 
     return promoter_list
 
-def gene_features(features_list, guide_in_cds_seq, guide_pos, guide_in_transcript_pos, elements_list):
+# def gene_features(features_list, guide_in_cds_seq, guide_pos, guide_in_transcript_pos, elements_list):
+#     exons = list(filter(lambda p: 'exon' in p[0], features_list))
+#     not_exons = list(filter(lambda p: 'exon' not in p[0], features_list[2:]))
+
+#     new_exons_features = []
+#     for exon in exons:
+#         exon_start = exon[1]
+#         exon_end = exon[2]
+#         exon_seq = exon[4]
+#         for feature in not_exons:
+#             feature_start = feature[1]
+#             feature_end = feature[2]
+#             feature_seq = feature[4]
+#             if feature_end<exon_start:
+#                 pass
+#             elif feature_start>exon_end:
+#                 pass
+#             else:
+#                 if feature[0]=='misc_feature':
+#                     new_feature_start = np.maximum(feature_start, exon_start)
+#                     new_feature_end = np.minimum(feature_end, exon_end)
+#                     new_exons_features.append([exon[0], 
+#                                                feature[3]['note'][0].split(';')[-1].split('/')[0].strip(), 
+#                                                new_feature_start, new_feature_end, feature[3]])
+#                 else:
+#                     new_feature_start = np.maximum(feature_start, exon_start)
+#                     new_feature_end = np.minimum(feature_end, exon_end)
+#                     new_exons_features.append([exon[0], feature[0], new_feature_start, new_feature_end, feature[3]])
+
+
+
+#     exon = list(filter(lambda p: (p[1]<=guide_in_transcript_pos) & (p[2]>=guide_in_transcript_pos), exons))[0]
+#     exon_name = exon[0]
+#     new_exons_features = list(filter(lambda p: p[0]==exon_name, new_exons_features))
+
+#     new_exons_features_before = []
+#     new_exons_features_after = []
+#     for feature in new_exons_features:
+#         feature_start = feature[2]
+#         feature_end = feature[3]
+#         if feature_end<(guide_in_transcript_pos + len(guide_in_cds_seq) - guide_pos):
+#             new_exons_features_before.append(feature)
+#             pass
+#         elif feature_start>(guide_in_transcript_pos + len(guide_in_cds_seq) - guide_pos):
+#             new_exons_features_after.append(feature)
+#         else:
+#             new_feature_start = np.maximum(feature_start, (guide_in_transcript_pos + len(guide_in_cds_seq) - guide_pos))
+#             new_feature_end = np.minimum(feature_end, (guide_in_transcript_pos + len(guide_in_cds_seq) - guide_pos))
+#             new_exons_features_before.append([feature[0], feature[1], feature_start, new_feature_end, feature[4]])
+#             new_exons_features_after.append([feature[0], feature[1], new_feature_start, feature_end, feature[4]])
+
+#     new_feature_start = np.maximum(exon[1], (guide_in_transcript_pos + len(guide_in_cds_seq) - guide_pos))
+#     new_feature_end = np.minimum(exon[2], (guide_in_transcript_pos + len(guide_in_cds_seq) - guide_pos))
+#     new_exons_features_before.append([exon_name, exon_name, exon[1], new_feature_end, feature[4]])
+#     new_exons_features_after.append([exon_name, exon_name, new_feature_start, exon[2], feature[4]])
+
+#     lha_end = list(filter(lambda p: 'LHA' in p, elements_list))[0][2]
+#     rha_start = list(filter(lambda p: 'RHA' in p, elements_list))[0][1]
+
+#     lha_delta = lha_end - ((guide_in_transcript_pos + len(guide_in_cds_seq) - guide_pos))
+#     rha_delta = rha_start - ((guide_in_transcript_pos + len(guide_in_cds_seq) - guide_pos))
+
+#     for feature in new_exons_features_before:
+#         elements_list.append([feature[1], 
+#                               feature[2]+lha_delta, 
+#                               feature[3]+lha_delta, 
+#                               '+', 
+#                               'transcript_feature'])
+
+#     for feature in new_exons_features_after:
+#         elements_list.append([feature[1], 
+#                               feature[2]+rha_delta, 
+#                               feature[3]+rha_delta, 
+#                               '+', 
+#                               'transcript_feature'])
+    
+#     return elements_list
+
+def gene_features(features_list, guide, guide_pos, guide_in_transcript_pos, 
+                  elements_list, position_insert_start, delta_nucleotides):
     exons = list(filter(lambda p: 'exon' in p[0], features_list))
     not_exons = list(filter(lambda p: 'exon' not in p[0], features_list[2:]))
 
@@ -522,27 +601,30 @@ def gene_features(features_list, guide_in_cds_seq, guide_pos, guide_in_transcrip
     for feature in new_exons_features:
         feature_start = feature[2]
         feature_end = feature[3]
-        if feature_end<(guide_in_transcript_pos + len(guide_in_cds_seq) - guide_pos):
+        if feature_end<(guide_in_transcript_pos + position_insert_start - guide_pos):
             new_exons_features_before.append(feature)
             pass
-        elif feature_start>(guide_in_transcript_pos + len(guide_in_cds_seq) - guide_pos):
+        elif feature_start>(guide_in_transcript_pos + (len(guide) - position_insert_start - 1) - guide_pos):
             new_exons_features_after.append(feature)
         else:
-            new_feature_start = np.maximum(feature_start, (guide_in_transcript_pos + len(guide_in_cds_seq) - guide_pos))
-            new_feature_end = np.minimum(feature_end, (guide_in_transcript_pos + len(guide_in_cds_seq) - guide_pos))
+            new_feature_start = np.maximum(feature_start, 
+                                           (guide_in_transcript_pos + position_insert_start - guide_pos) + delta_nucleotides + 1)
+            new_feature_end = np.minimum(feature_end, (guide_in_transcript_pos + position_insert_start - guide_pos))
             new_exons_features_before.append([feature[0], feature[1], feature_start, new_feature_end, feature[4]])
             new_exons_features_after.append([feature[0], feature[1], new_feature_start, feature_end, feature[4]])
 
-    new_feature_start = np.maximum(exon[1], (guide_in_transcript_pos + len(guide_in_cds_seq) - guide_pos))
-    new_feature_end = np.minimum(exon[2], (guide_in_transcript_pos + len(guide_in_cds_seq) - guide_pos))
+    new_feature_start = np.maximum(exon[1], (guide_in_transcript_pos + position_insert_start - guide_pos) + delta_nucleotides + 1)
+    new_feature_end = np.minimum(exon[2], (guide_in_transcript_pos + position_insert_start - guide_pos))
     new_exons_features_before.append([exon_name, exon_name, exon[1], new_feature_end, feature[4]])
     new_exons_features_after.append([exon_name, exon_name, new_feature_start, exon[2], feature[4]])
 
     lha_end = list(filter(lambda p: 'LHA' in p, elements_list))[0][2]
     rha_start = list(filter(lambda p: 'RHA' in p, elements_list))[0][1]
 
-    lha_delta = lha_end - ((guide_in_transcript_pos + len(guide_in_cds_seq) - guide_pos))
-    rha_delta = rha_start - ((guide_in_transcript_pos + len(guide_in_cds_seq) - guide_pos))
+    # lha_delta = lha_end - ((guide_in_transcript_pos + position_insert_start - guide_pos))
+    lha_delta = lha_end - new_feature_end
+    # rha_delta = rha_start - ((guide_in_transcript_pos + (len(guide) - position_insert_start - 1) - guide_pos))
+    rha_delta = rha_start - new_feature_start
 
     for feature in new_exons_features_before:
         elements_list.append([feature[1], 
@@ -557,5 +639,83 @@ def gene_features(features_list, guide_in_cds_seq, guide_pos, guide_in_transcrip
                               feature[3]+rha_delta, 
                               '+', 
                               'transcript_feature'])
-    
     return elements_list
+
+title = """LOCUS       {gene_name}        {len_full_sequence} bp DNA     linear   UNA {date_today}
+DEFINITION  {gene_name}.
+ACCESSION   .
+VERSION     .
+KEYWORDS    .
+SOURCE      synthetic DNA construct
+  ORGANISM  synthetic DNA construct
+REFERENCE   1  (bases 1 to {len_full_sequence})
+  AUTHORS   .
+  TITLE     Direct Submission
+  JOURNAL   For SnapGene Viewer
+            https://www.snapgene.com
+FEATURES             Location/Qualifiers"""
+
+feature_sourse = '''     source          1..{len_full_sequence}
+                     /mol_type="other DNA"
+                     /note="color: #ffffff"
+                     /organism="synthetic DNA construct"'''
+
+origin = '''ORIGIN
+{origin_seq}
+//'''
+
+def misc_feature_template(start, end, label, color, direction):
+    misc_f = f'''     misc_feature    {start}..{end}
+                     /label={label}
+                     /note="color: {color}; direction: {direction}"'''
+    return misc_f
+
+def gene_bank_file(gene_name, full_sequence, date_today, 
+                   elements_list, colors, files_name, title=title, 
+                   feature_sourse=feature_sourse, origin=origin):
+    
+    title = title.format(gene_name=gene_name, full_sequence=full_sequence, 
+             date_today=date_today, len_full_sequence = len(full_sequence))
+    
+    feature_sourse = feature_sourse.format(len_full_sequence = len(full_sequence)) 
+    
+    all_misc_feature = ''
+    for feature in elements_list:
+        start = feature[1]
+        end = feature[2]
+        name = feature[0]
+        color = colors[feature[4]][0]
+        direction = feature[3]
+        if direction == '+':
+            direction = 'RIGHT'
+        else:
+            direction = 'LEFT'
+        misc_feature = misc_feature_template(start, end, name, color, direction)
+        all_misc_feature += misc_feature + '\n'
+        
+    origin_seq = ''
+    for i in range(len(full_sequence)):
+        if i%60 == 0:
+            origin_seq += '\n' + ' '*(9 - len(str(i+1))) + str(i+1) + ' '
+        elif i%10 == 0:
+            origin_seq += ' '
+        origin_seq += full_sequence[i].lower()
+    origin_seq = origin_seq[1:]    
+    
+    origin = origin.format(origin_seq=origin_seq)
+
+    gbk_file_name = (
+        "src/static/outputs/"
+        + gene_name
+        + "/"
+        + files_name
+        + ".gbk"
+    )
+
+    with open(gbk_file_name, "w", encoding="utf-8") as f:
+        f.write(title + '\n')
+        f.write(feature_sourse + '\n')
+        f.write(all_misc_feature)
+        f.write(origin + '\n')
+
+    return gbk_file_name
