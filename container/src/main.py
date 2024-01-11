@@ -345,16 +345,17 @@ def index(out_dict):
         checkbox_value = request.form.get("checkbox")
 
         if selected_element is not None:
-            if checkbox_value == "reverse":
-                out_dict["selected_elements"].append(selected_element + "_reverse")
-            else:
-                out_dict["selected_elements"].append(selected_element)
-            out_dict["selected_elements_colors"] = ", ".join(
-                [
-                    colors[e.split("_")[0]][2] + e + "</span>"
-                    for e in out_dict["selected_elements"]
-                ]
-            )
+            if selected_element != '':
+                if checkbox_value == "reverse":
+                    out_dict["selected_elements"].append(selected_element + "_reverse")
+                else:
+                    out_dict["selected_elements"].append(selected_element)
+                out_dict["selected_elements_colors"] = ", ".join(
+                    [
+                        colors[e.split("_")[0]][2] + e + "</span>"
+                        for e in out_dict["selected_elements"]
+                    ]
+                )
 
         if "file_upload_submit" in request.form:
             # upload fasta file with new element
@@ -468,6 +469,7 @@ def index(out_dict):
         if "clear_forms_submit" in request.form:
             for key in out_dict.keys():
                 out_dict[key] = out_dict_start[key]
+                out_dict["selected_elements"] = []
 
         # Save selected parameters to input windows
         gene_info_form.text_field.default = out_dict["gene_name"]
