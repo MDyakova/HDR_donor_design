@@ -116,6 +116,19 @@
         <input type="submit" value="Clear forms" name="clear_forms_submit">
         </div>
     </form>
+    <h3>7. Make complimentary oligonuleotides for CTS. </h3>
+    <form method="POST">
+        <!-- {{ forms['cts_info_form'].hidden_tag() }} -->
+        <div>
+            {{ forms['cts_info_form'].text_field8.label }} {{ forms['cts_info_form'].text_field8 }}
+            {{ forms['cts_info_form'].text_field9.label }} {{ forms['cts_info_form'].text_field9 }}
+            {{ forms['cts_info_form'].text_field10.label }} {{ forms['cts_info_form'].text_field10 }}
+            <h4></h4>
+        </div>
+        <div>
+            <input type="submit" value="Submit" name="cts_info_form_submit">
+        </div>
+    </form>
   
 </body>
 </html>

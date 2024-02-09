@@ -132,6 +132,14 @@ def guide_info(guide_seq, cds_seq, strand, ensemble_gene_seq, cds_seq_long, refs
     compl_dict = {"A": "T", "T": "A", "G": "C", "C": "G"}
 
     if ';' not in guide_seq:
+        right_guide = guide_seq[-20:]
+        left_guide = ''.join([compl_dict[i] for i in guide_seq[:20]][::-1])
+        guide_seq = ';'.join([left_guide, right_guide])
+
+        right_guide_save = right_guide
+        left_guide_save = left_guide
+
+    if ';' not in guide_seq:
         if strand == '-':
             guide = ''.join([compl_dict[i] for i in guide_seq][::-1])
         else:
@@ -140,6 +148,9 @@ def guide_info(guide_seq, cds_seq, strand, ensemble_gene_seq, cds_seq_long, refs
         left_guide, right_guide = guide_seq.split(';')
         left_guide = left_guide.strip()
         right_guide = right_guide.strip()
+
+        right_guide_save = right_guide
+        left_guide_save = left_guide
         
         if left_guide not in ensemble_gene_seq:
             left_guide = ''.join([compl_dict[i] for i in left_guide][::-1])
@@ -196,7 +207,7 @@ def guide_info(guide_seq, cds_seq, strand, ensemble_gene_seq, cds_seq_long, refs
             guide_in_cds_pos, 
             guide_in_cds_seq, 
             guide_in_transcript_pos, 
-            guide_pos)
+            guide_pos, left_guide_save, right_guide_save)
 
 
 def make_seqience(
@@ -337,8 +348,8 @@ def make_seqience(
     elements_list.append(
         [
             "RHA",
-            elements_list[-1][2] + 1,
-            elements_list[-1][2] + rha_size,
+            np.max([i[2] for i in elements_list]) + 1,
+            np.max([i[2] for i in elements_list]) + rha_size,
             "+",
             "gene sequence",
         ]
@@ -670,9 +681,17 @@ def misc_feature_template(start, end, label, color, direction):
                      /note="color: {color}; direction: {direction}"'''
     return misc_f
 
+def primer_template(end, name, seq, date_today):
+    primer_f = f'''     primer_bind     complement(1..{end})
+                     /label={name}
+                     /note="color: black; sequence: 
+                     {seq}; added: 
+                     {date_today}"'''
+    return primer_f
+
 def gene_bank_file(gene_name, full_sequence, date_today, 
-                   elements_list, colors, files_name, title=title, 
-                   feature_sourse=feature_sourse, origin=origin):
+                   elements_list, colors, files_name, oligos = [], 
+                   title=title, feature_sourse=feature_sourse, origin=origin):
     
     title = title.format(gene_name=gene_name, full_sequence=full_sequence, 
              date_today=date_today, len_full_sequence = len(full_sequence))
@@ -692,6 +711,15 @@ def gene_bank_file(gene_name, full_sequence, date_today,
             direction = 'LEFT'
         misc_feature = misc_feature_template(start, end, name, color, direction)
         all_misc_feature += misc_feature + '\n'
+
+    all_primers = ''
+    for oligo in oligos:
+        end = oligo[1]
+        name = oligo[0]
+        seq = oligo[2]
+
+        primer_feature = primer_template(end, name, seq, date_today)
+        all_primers += primer_feature + '\n'
         
     origin_seq = ''
     for i in range(len(full_sequence)):
@@ -716,6 +744,64 @@ def gene_bank_file(gene_name, full_sequence, date_today,
         f.write(title + '\n')
         f.write(feature_sourse + '\n')
         f.write(all_misc_feature)
+        f.write(all_primers)
         f.write(origin + '\n')
 
     return gbk_file_name
+
+
+def oligo_creater(guide, full_sequence, guide_homology_arm_size, 
+                  buffer_size, n_scrambled_bases, nucleotide_changes,
+                 left_flank, right_flank, LHA_sequence, RHA_sequence,
+                 insert_sequence, elements_list, left_guide, right_guide,
+                 flank_size):
+
+    oligos = []
+    compl_dict = {'A':'T', 'T':'A', 'G':'C', 'C':'G'}
+
+    left_guide_seq5, right_guide_seq5 = guide[:20], guide[-20:]
+
+    left_guide_homology_arm = full_sequence.split(left_guide_seq5)[0][-(guide_homology_arm_size+3):]
+    left_oligo = left_guide_homology_arm + left_guide_seq5
+
+    right_guide_homology_arm = full_sequence.split(right_guide_seq5)[1][:(guide_homology_arm_size+3)]
+    right_oligo = right_guide_seq5 + right_guide_homology_arm
+
+    left_guide_seq5_mut = (''.join([nucleotide_changes[n] for n in left_guide_seq5[:n_scrambled_bases]]) 
+                                + left_guide_seq5[n_scrambled_bases:])
+    right_guide_seq5_mut = (right_guide_seq5[:(20-n_scrambled_bases)] 
+                            + ''.join([nucleotide_changes[n] for n in right_guide_seq5[-n_scrambled_bases:]]))
+
+    eff_pam = 'AGG'
+    eff_pam_rev = 'CCT'
+
+    left_term_oligo = right_guide_seq5 + eff_pam + LHA_sequence[:guide_homology_arm_size]
+    right_term_oligo = RHA_sequence[-guide_homology_arm_size:] + eff_pam_rev + left_guide_seq5
+
+    left_term_oligo = left_term_oligo.replace(right_guide_seq5, right_guide_seq5_mut)
+    right_term_oligo = right_term_oligo.replace(left_guide_seq5, left_guide_seq5_mut)
+    left_oligo = left_oligo.replace(left_guide_seq5, left_guide_seq5_mut)
+    right_oligo = right_oligo.replace(right_guide_seq5, right_guide_seq5_mut)
+
+    left_oligo_rev = ''.join([compl_dict[n] for n in left_oligo][::-1])
+    right_oligo_rev = ''.join([compl_dict[n] for n in right_oligo][::-1])
+    left_term_oligo_rev = ''.join([compl_dict[n] for n in left_term_oligo][::-1])
+    right_term_oligo_rev = ''.join([compl_dict[n] for n in right_term_oligo][::-1])
+
+    oligos.append(['LHA_adjacent_CTS', len(left_oligo_rev), left_oligo_rev])
+    oligos.append(['RHA_adjacent_CTS', len(right_oligo_rev), right_oligo_rev])
+    oligos.append(['LHA_terminal_CTS', len(left_term_oligo_rev), left_term_oligo_rev])
+    oligos.append(['RHA_terminal_CTS', len(right_term_oligo_rev), right_term_oligo_rev])
+
+    full_sequence = (left_flank[-buffer_size:] + left_term_oligo[:23] + LHA_sequence + insert_sequence 
+                        + RHA_sequence + right_term_oligo[-23:] + right_flank[:buffer_size])
+    full_sequence = full_sequence.replace(right_guide_seq5, right_guide_seq5_mut)
+    full_sequence = full_sequence.replace(left_guide_seq5, left_guide_seq5_mut)
+
+    delta  = flank_size - 23 - buffer_size
+    elements_list = [[el[i]-delta if (i==1) | (i==2) else el[i] for i in range(5)] for el in elements_list]
+
+    oligos.append(['guide', len(left_guide), left_guide])
+    oligos.append(['guide', len(right_guide), right_guide])
+    
+    return full_sequence, oligos, elements_list

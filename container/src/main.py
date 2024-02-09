@@ -23,7 +23,8 @@ from utilities import (
     list_files_and_sizes,
     find_promoter, 
     gene_features,
-    gene_bank_file
+    gene_bank_file,
+    oligo_creater
 )
 
 app = Flask(__name__)
@@ -80,7 +81,17 @@ out_dict = {
     "guide_in_cds_seq":'',
     "guide_pos":'',
     "guide_in_transcript_pos":'',
-    "delta_nucleotides":''
+    "delta_nucleotides":'',
+    "CTS_HA": 37,
+    "buffer": 5,
+    "scrambled_nt":2,
+    "left_flank":'',
+    "right_flank":'',
+    "lha_sequence":'',
+    "rha_sequence":'',
+    "oligos":[],
+    "right_guide":'',
+    "left_guide":''
 
 }
 
@@ -132,6 +143,15 @@ class SaveFiles(FlaskForm):
     """
     text_field7 = StringField("", default="", render_kw={"style": "width: 550px;"})
 
+class CTSInfo(FlaskForm):
+    """
+    Information about ensemble and ncbi gene names or id
+    """
+    text_field8 = StringField("Size of CTS homology arm", default="", render_kw={"style": "width: 50px;"})
+    text_field9 = StringField("Size of buffer", default="", render_kw={"style": "width: 50px;"})
+    text_field10 = StringField("Number of scrambled bases", default="", render_kw={"style": "width: 50px;"})
+
+
 
 def index(out_dict):
     """
@@ -140,10 +160,12 @@ def index(out_dict):
 
     gene_info_form = GeneInfo()
     save_files_form = SaveFiles()
+    cts_info_form = CTSInfo()
 
     forms = {
         "gene_info_form": gene_info_form,
-        "save_files_form":save_files_form
+        "save_files_form":save_files_form,
+        "cts_info_form":cts_info_form
 
     }
 
@@ -209,7 +231,7 @@ def index(out_dict):
                  guide_in_cds_pos, 
                  guide_in_cds_seq, 
                  guide_in_transcript_pos, 
-                 guide_pos) = guide_info(
+                 guide_pos, left_guide, right_guide) = guide_info(
                     guide_seq, out_dict["CDS_seq"], out_dict["strand"], 
                     out_dict["ensemble_gene_seq"], out_dict["CDS_seq_long"], out_dict["refseq_seq"]
                 )
@@ -221,6 +243,8 @@ def index(out_dict):
                 out_dict["guide_in_cds_seq"] = guide_in_cds_seq
                 out_dict["guide_in_transcript_pos"] = guide_in_transcript_pos
                 out_dict["guide_pos"] = guide_pos
+                out_dict["left_guide"] = left_guide
+                out_dict["right_guide"] = right_guide
 
             except Exception as e:
                 text_error = 'check guide sequence'
@@ -271,6 +295,11 @@ def index(out_dict):
             right_flank = out_dict["ensemble_gene_seq"].split(rha_sequence)[1][
                 : out_dict["flank"]
             ]
+
+            out_dict['left_flank'] = left_flank
+            out_dict['right_flank'] = right_flank
+            out_dict['lha_sequence'] = lha_sequence
+            out_dict['rha_sequence'] = rha_sequence
 
             promoter_list = find_promoter(out_dict["gene_name"])
             # left_seq = left_flank + lha_sequence + rha_sequence[:20]
@@ -483,6 +512,12 @@ def index(out_dict):
 
         gene_info_form.process()
 
+        cts_info_form.text_field8.default = out_dict['CTS_HA']
+        cts_info_form.text_field9.default = out_dict['buffer']
+        cts_info_form.text_field10.default = out_dict['scrambled_nt']
+
+        cts_info_form.process()
+
         date_today = str(date.today())
         save_files_form.text_field7.default = ('Donor_' 
                                                + out_dict["gene_name"] 
@@ -492,9 +527,92 @@ def index(out_dict):
                                                + date_today)
         save_files_form.process()
 
+        if "cts_info_form_submit" in request.form:
+            # Data from ensemble and ncbi, guide sequence
+            cts_ha_size = cts_info_form.text_field8.data
+            buffer = cts_info_form.text_field9.data
+            scrambled_nt = cts_info_form.text_field10.data
+
+            if (cts_ha_size == '') | (buffer == '') | (scrambled_nt == ''):
+                text_error = 'enter all data'
+                out_dict["gene_dict"] = ("<span class='red-text'>" 
+                                         + 'Error: ' + str(text_error)
+                                         + "</span>")
+                return render_template("home.html", out_dict=out_dict, forms=forms)
+
+            out_dict["CTS_HA"] = cts_ha_size
+            out_dict["buffer"] = buffer
+            out_dict["scrambled_nt"] = scrambled_nt
+
+            files_name = save_files_form.text_field7.data
+            out_dict["files_name"] = files_name
+
+            nucleotide_changes = {'A':'G', 'T':'C', 'C':'T', 'G':'A'}
+
+            full_sequence, oligos, elements_list = oligo_creater(out_dict["guide"], out_dict["full_seq"], out_dict["CTS_HA"], 
+                                                                out_dict["buffer"], out_dict["scrambled_nt"], nucleotide_changes,
+                                                                out_dict['left_flank'], out_dict['right_flank'], 
+                                                                out_dict['lha_sequence'], out_dict['rha_sequence'],
+                                                                out_dict["insert_seq"], out_dict["elements_list"],
+                                                                out_dict['left_guide'], out_dict['right_guide'],
+                                                                out_dict["flank"] )
+            
+            out_dict["elements_list"] = elements_list
+            out_dict["full_seq"] = full_sequence
+            out_dict["oligos"] = oligos
+
+            date_today = str(date.today())
+            gbk_file = gene_bank_file(out_dict["gene_name"], out_dict["full_seq"], date_today, 
+                                            out_dict["elements_list"], colors, out_dict["files_name"], 
+                                            oligos = out_dict["oligos"])
+            
+            fasta_file_name = (
+                "src/static/outputs/" + out_dict["gene_name"] + "/" + out_dict["files_name"] + "_donor_sequence_with_oligo.fa"
+            )
+            with open(fasta_file_name, "w", encoding="utf-8") as file:
+                file.write("> " + out_dict["gene_name"] + "\n")
+                file.write(out_dict["full_seq"] + "\n")
+
+            fasta_file_name_oligos = (
+                            "src/static/outputs/" + out_dict["gene_name"] + "/" + out_dict["files_name"] + "_oligo_sequences.fa"
+                        )
+
+            with open(fasta_file_name_oligos, "w", encoding="utf-8") as file:
+                for oligo in out_dict["oligos"]:
+                    if 'guide' not in oligo[0]:
+                        file.write('> ' + oligo[0] + '\n')
+                        file.write(oligo[2] + '\n')
+            
+            # Create a BytesIO object to store the ZIP file
+            zip_buffer = BytesIO()
+
+            # Create a ZipFile object
+            with zipfile.ZipFile(
+                zip_buffer, "a", zipfile.ZIP_DEFLATED, False
+            ) as zip_file:
+                # Add the FASTA file to the ZIP file with a custom name
+                zip_file.write(fasta_file_name, arcname=fasta_file_name.split("/")[-1])
+
+                # Add the BED file to the ZIP file with a custom name
+                zip_file.write(fasta_file_name_oligos, arcname=fasta_file_name_oligos.split("/")[-1])
+
+                # Add the GBK file to the ZIP file with a custom name
+                zip_file.write(gbk_file, arcname=gbk_file.split("/")[-1])
+
+            # Move the buffer's position to the beginning to ensure all the data is read
+            zip_buffer.seek(0)
+
+            # Return the ZIP file as an attachment
+            return send_file(
+                zip_buffer,
+                download_name=out_dict["files_name"] + ".zip",
+                as_attachment=True,
+            )         
+
         forms = {
             "gene_info_form": gene_info_form,
-            "save_files_form":save_files_form
+            "save_files_form":save_files_form,
+            "cts_info_form":cts_info_form
         }
 
         return render_template("home.html", out_dict=out_dict, forms=forms)
@@ -504,6 +622,12 @@ def index(out_dict):
     gene_info_form.text_field6.default = out_dict["flank"]
 
     gene_info_form.process()
+
+    cts_info_form.text_field8.default = out_dict['CTS_HA']
+    cts_info_form.text_field9.default = out_dict['buffer']
+    cts_info_form.text_field10.default = out_dict['scrambled_nt']
+
+    cts_info_form.process()
 
     date_today = str(date.today())
     save_files_form.text_field7.default = ('Donor_' 
