@@ -91,7 +91,8 @@ out_dict = {
     "rha_sequence":'',
     "oligos":[],
     "right_guide":'',
-    "left_guide":''
+    "left_guide":'',
+    "full_seq_oligo":''
 
 }
 
@@ -268,6 +269,14 @@ def index(out_dict):
                                          + 'Error: ' + str(text_error)
                                          + "</span>")
                 return render_template("home.html", out_dict=out_dict, forms=forms)
+            date_today = str(date.today())
+            file_names = ('Donor_' 
+                            + out_dict["gene_name"] 
+                            + '_' 
+                            + out_dict["guide_seq"]
+                            + '_'
+                            + date_today)
+            out_dict['files_name'] = file_names
 
         if "make_seq_submit" in request.form:
             # data to make full donor sequence
@@ -500,38 +509,11 @@ def index(out_dict):
                 out_dict[key] = out_dict_start[key]
                 out_dict["selected_elements"] = []
 
-        # Save selected parameters to input windows
-        gene_info_form.text_field.default = out_dict["gene_name"]
-        gene_info_form.text_field2.default = out_dict["ncbi_id"]
-
-        gene_info_form.text_field3.default = out_dict["guide_seq"]
-
-        gene_info_form.text_field4.default = out_dict["lha"]
-        gene_info_form.text_field5.default = out_dict["rha"]
-        gene_info_form.text_field6.default = out_dict["flank"]
-
-        gene_info_form.process()
-
-        cts_info_form.text_field8.default = out_dict['CTS_HA']
-        cts_info_form.text_field9.default = out_dict['buffer']
-        cts_info_form.text_field10.default = out_dict['scrambled_nt']
-
-        cts_info_form.process()
-
-        date_today = str(date.today())
-        save_files_form.text_field7.default = ('Donor_' 
-                                               + out_dict["gene_name"] 
-                                               + '_' 
-                                               + out_dict["guide_seq"]
-                                               + '_'
-                                               + date_today)
-        save_files_form.process()
-
         if "cts_info_form_submit" in request.form:
             # Data from ensemble and ncbi, guide sequence
-            cts_ha_size = cts_info_form.text_field8.data
-            buffer = cts_info_form.text_field9.data
-            scrambled_nt = cts_info_form.text_field10.data
+            cts_ha_size = int(cts_info_form.text_field8.data)
+            buffer = int(cts_info_form.text_field9.data)
+            scrambled_nt = int(cts_info_form.text_field10.data)
 
             if (cts_ha_size == '') | (buffer == '') | (scrambled_nt == ''):
                 text_error = 'enter all data'
@@ -540,12 +522,12 @@ def index(out_dict):
                                          + "</span>")
                 return render_template("home.html", out_dict=out_dict, forms=forms)
 
-            out_dict["CTS_HA"] = cts_ha_size
+            out_dict["CTS_HA"] = np.maximum(cts_ha_size, 23)
             out_dict["buffer"] = buffer
-            out_dict["scrambled_nt"] = scrambled_nt
+            out_dict["scrambled_nt"] = scrambled_nt           
 
-            files_name = save_files_form.text_field7.data
-            out_dict["files_name"] = files_name
+            # files_name = save_files_form.text_field7.default
+            # out_dict["files_name"] = files_name
 
             nucleotide_changes = {'A':'G', 'T':'C', 'C':'T', 'G':'A'}
 
@@ -555,14 +537,14 @@ def index(out_dict):
                                                                 out_dict['lha_sequence'], out_dict['rha_sequence'],
                                                                 out_dict["insert_seq"], out_dict["elements_list"],
                                                                 out_dict['left_guide'], out_dict['right_guide'],
-                                                                out_dict["flank"] )
+                                                                out_dict["flank"])
             
             out_dict["elements_list"] = elements_list
-            out_dict["full_seq"] = full_sequence
+            out_dict["full_seq_oligo"] = full_sequence
             out_dict["oligos"] = oligos
 
             date_today = str(date.today())
-            gbk_file = gene_bank_file(out_dict["gene_name"], out_dict["full_seq"], date_today, 
+            gbk_file = gene_bank_file(out_dict["gene_name"], out_dict["full_seq_oligo"], date_today, 
                                             out_dict["elements_list"], colors, out_dict["files_name"], 
                                             oligos = out_dict["oligos"])
             
@@ -571,7 +553,7 @@ def index(out_dict):
             )
             with open(fasta_file_name, "w", encoding="utf-8") as file:
                 file.write("> " + out_dict["gene_name"] + "\n")
-                file.write(out_dict["full_seq"] + "\n")
+                file.write(out_dict["full_seq_oligo"] + "\n")
 
             fasta_file_name_oligos = (
                             "src/static/outputs/" + out_dict["gene_name"] + "/" + out_dict["files_name"] + "_oligo_sequences.fa"
@@ -609,6 +591,30 @@ def index(out_dict):
                 as_attachment=True,
             )         
 
+        # Save selected parameters to input windows
+        gene_info_form.text_field.default = out_dict["gene_name"]
+        gene_info_form.text_field2.default = out_dict["ncbi_id"]
+
+        gene_info_form.text_field3.default = out_dict["guide_seq"]
+
+        gene_info_form.text_field4.default = out_dict["lha"]
+        gene_info_form.text_field5.default = out_dict["rha"]
+        gene_info_form.text_field6.default = out_dict["flank"]
+
+        gene_info_form.process()
+
+        cts_info_form.text_field8.default = out_dict['CTS_HA']
+        cts_info_form.text_field9.default = out_dict['buffer']
+        cts_info_form.text_field10.default = out_dict['scrambled_nt']
+
+        cts_info_form.process()
+
+        date_today = str(date.today())
+        save_files_form.text_field7.default = out_dict['files_name']
+        save_files_form.process()
+
+
+
         forms = {
             "gene_info_form": gene_info_form,
             "save_files_form":save_files_form,
@@ -630,12 +636,7 @@ def index(out_dict):
     cts_info_form.process()
 
     date_today = str(date.today())
-    save_files_form.text_field7.default = ('Donor_' 
-                                            + out_dict["gene_name"] 
-                                            + '_' 
-                                            + out_dict["guide_seq"]
-                                            + '_'
-                                            + date_today)
+    save_files_form.text_field7.default = out_dict['files_name']
     save_files_form.process()
 
     return render_template("home.html", out_dict=out_dict, forms=forms)
