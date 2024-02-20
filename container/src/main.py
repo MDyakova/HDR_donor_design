@@ -92,7 +92,8 @@ out_dict = {
     "oligos":[],
     "right_guide":'',
     "left_guide":'',
-    "full_seq_oligo":''
+    "full_seq_oligo":'',
+    'elements_list_oligo':[]
 
 }
 
@@ -531,21 +532,28 @@ def index(out_dict):
 
             nucleotide_changes = {'A':'G', 'T':'C', 'C':'T', 'G':'A'}
 
+            checkbox_value4 = request.form.get("checkbox4")
+
+            if checkbox_value4 == "is_terminal_oligos":
+                is_terminal = True
+            else:
+                is_terminal = False
+
             full_sequence, oligos, elements_list = oligo_creater(out_dict["guide"], out_dict["full_seq"], out_dict["CTS_HA"], 
                                                                 out_dict["buffer"], out_dict["scrambled_nt"], nucleotide_changes,
                                                                 out_dict['left_flank'], out_dict['right_flank'], 
                                                                 out_dict['lha_sequence'], out_dict['rha_sequence'],
                                                                 out_dict["insert_seq"], out_dict["elements_list"],
                                                                 out_dict['left_guide'], out_dict['right_guide'],
-                                                                out_dict["flank"])
+                                                                out_dict["flank"], is_terminal)
             
-            out_dict["elements_list"] = elements_list
+            out_dict["elements_list_oligo"] = elements_list
             out_dict["full_seq_oligo"] = full_sequence
             out_dict["oligos"] = oligos
 
             date_today = str(date.today())
             gbk_file = gene_bank_file(out_dict["gene_name"], out_dict["full_seq_oligo"], date_today, 
-                                            out_dict["elements_list"], colors, out_dict["files_name"], 
+                                            out_dict["elements_list_oligo"], colors, out_dict["files_name"], 
                                             oligos = out_dict["oligos"])
             
             fasta_file_name = (

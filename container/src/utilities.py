@@ -754,7 +754,7 @@ def oligo_creater(guide, full_sequence, guide_homology_arm_size,
                   buffer_size, n_scrambled_bases, nucleotide_changes,
                  left_flank, right_flank, LHA_sequence, RHA_sequence,
                  insert_sequence, elements_list, left_guide, right_guide,
-                 flank_size):
+                 flank_size, is_terminal):
 
     oligos = []
     compl_dict = {'A':'T', 'T':'A', 'G':'C', 'C':'G'}
@@ -767,10 +767,14 @@ def oligo_creater(guide, full_sequence, guide_homology_arm_size,
     right_guide_homology_arm = full_sequence.split(right_guide_seq5)[1][:(guide_homology_arm_size+3)]
     right_oligo = right_guide_seq5 + right_guide_homology_arm
 
-    left_guide_seq5_mut = (''.join([nucleotide_changes[n] for n in left_guide_seq5[:n_scrambled_bases]]) 
-                                + left_guide_seq5[n_scrambled_bases:])
-    right_guide_seq5_mut = (right_guide_seq5[:(20-n_scrambled_bases)] 
-                            + ''.join([nucleotide_changes[n] for n in right_guide_seq5[-n_scrambled_bases:]]))
+    if n_scrambled_bases>0:
+        left_guide_seq5_mut = (''.join([nucleotide_changes[n] for n in left_guide_seq5[:n_scrambled_bases]]) 
+                                    + left_guide_seq5[n_scrambled_bases:])
+        right_guide_seq5_mut = (right_guide_seq5[:(20-n_scrambled_bases)] 
+                                + ''.join([nucleotide_changes[n] for n in right_guide_seq5[-n_scrambled_bases:]]))
+    else:
+        left_guide_seq5_mut = left_guide_seq5
+        right_guide_seq5_mut = right_guide_seq5
 
     eff_pam = 'AGG'
     eff_pam_rev = 'CCT'
@@ -790,16 +794,19 @@ def oligo_creater(guide, full_sequence, guide_homology_arm_size,
 
     oligos.append(['LHA_adjacent_CTS', len(left_oligo_rev), left_oligo_rev])
     oligos.append(['RHA_adjacent_CTS', len(right_oligo_rev), right_oligo_rev])
-    oligos.append(['LHA_terminal_CTS', len(left_term_oligo_rev), left_term_oligo_rev])
-    oligos.append(['RHA_terminal_CTS', len(right_term_oligo_rev), right_term_oligo_rev])
 
-    full_sequence = (left_flank[-buffer_size:] + left_term_oligo[:23] + LHA_sequence + insert_sequence 
-                        + RHA_sequence + right_term_oligo[-23:] + right_flank[:buffer_size])
+    if is_terminal:
+        oligos.append(['LHA_terminal_CTS', len(left_term_oligo_rev), left_term_oligo_rev])
+        oligos.append(['RHA_terminal_CTS', len(right_term_oligo_rev), right_term_oligo_rev])
+
+        full_sequence = (left_flank[-buffer_size:] + left_term_oligo[:23] + LHA_sequence + insert_sequence 
+                            + RHA_sequence + right_term_oligo[-23:] + right_flank[:buffer_size])
+
+        delta  = flank_size - 23 - buffer_size
+        elements_list = [[el[i]-delta if (i==1) | (i==2) else el[i] for i in range(5)] for el in elements_list]
+
     full_sequence = full_sequence.replace(right_guide_seq5, right_guide_seq5_mut)
     full_sequence = full_sequence.replace(left_guide_seq5, left_guide_seq5_mut)
-
-    delta  = flank_size - 23 - buffer_size
-    elements_list = [[el[i]-delta if (i==1) | (i==2) else el[i] for i in range(5)] for el in elements_list]
 
     oligos.append(['guide', len(left_guide), left_guide])
     oligos.append(['guide', len(right_guide), right_guide])
