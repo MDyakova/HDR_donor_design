@@ -8,6 +8,7 @@ python3 -m flask run
 docker run -p 5000:5000 -d container/dockerfile:vflask1
 docker cp /path/to/your/local/file.txt container_name:/path/in/container/ -->
 docker run -p 5000:5000 -v ${PWD}\outputs_flask:/src/static/outputs -d dockerfile:vflask1 
+docker run -p 5000:5000 -d dockerfile:vflask1
 docker build -t dockerfile:vflask1 ./    
 
 ## docker hub

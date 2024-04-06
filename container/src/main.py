@@ -407,7 +407,7 @@ def index(out_dict):
             # content_type = file.content_type
             content = file.read()
             content_str = content.decode("utf-8")
-            sequence = "".join(content_str.split("\n")[1:]).strip()
+            sequence = "".join(content_str.split("\n")[1:]).replace('\r', '').strip()
 
             # with open('out2.txt', 'w') as f:
             #     f.write(content_str)
