@@ -6,8 +6,8 @@ from io import BytesIO
 import zipfile
 import pandas as pd
 import numpy as np
-import shutil
 from datetime import date
+import json
 
 from flask import Flask, render_template, request, send_file
 from flask_wtf import FlaskForm
@@ -48,77 +48,18 @@ possible_elements = [
 ]
 
 # dictionary with all useful variables necessary to save throw whole pipeline
-out_dict = {
-    "gene_name": "",
-    "ncbi_id": "",
-    "guide_seq": "",
-    "lha": 400,
-    "rha": 400,
-    "ensemble_gene_seq": "",
-    "gene_dict": "",
-    "CDS_seq": "",
-    "CDS_seq_long": "",
-    "position_insert_start": "",
-    "flank": 100,
-    "guide": "",
-    "guide_cut_size": "",
-    "full_seq": "",
-    "possible_elements": possible_elements,
-    "selected_elements": [],
-    "selected_elements_colors": "",
-    "make_sequence": False,
-    "all_sequences": element_sequences,
-    "elements_list": [],
-    "full_seq_color": "",
-    "image_name": "",
-    "insert_seq": "",
-    "strand": "",
-    "guide_in_cds_pos": "",
-    "files_name": "",
-    "features_list":[],
-    "nn_error": "",
-    "refseq_seq":'',
-    "guide_in_cds_seq":'',
-    "guide_pos":'',
-    "guide_in_transcript_pos":'',
-    "delta_nucleotides":'',
-    "CTS_HA": 37,
-    "buffer": 5,
-    "scrambled_nt":2,
-    "left_flank":'',
-    "right_flank":'',
-    "lha_sequence":'',
-    "rha_sequence":'',
-    "oligos":[],
-    "right_guide":'',
-    "left_guide":'',
-    "full_seq_oligo":'',
-    'elements_list_oligo':[]
+with open('config.json', 'r') as f:
+    config = json.load(f)
 
-}
+out_dict = config['initial_values']
+out_dict['possible_elements'] = possible_elements
+out_dict['all_sequences'] = element_sequences
+out_dict['make_sequence'] = False
 
 out_dict_start = out_dict.copy()
 
 # colors for different elements
-colors = {
-    "2A motif": ["#0000EE", "(0, 0, 238)", "<span class='blue-text'>"],
-    "protein": ["#00C957", "(0, 201, 87)", "<span class='green-text'>"],
-    "cloning": ["#CDB38B", "(205, 179, 139)", "<span class='peach-text'>"],
-    "Stop codon": ["#330d70", "(118, 73, 191)", "<span class='violent-text'>"],
-    "Start codon": ["#330d70", "(118, 73, 191)", "<span class='violent-text'>"],
-    "Terminator": ["#FF6103", "(255, 97, 3)", "<span class='orange-text'>"],
-    "custom": ["#00C957", "(0, 201, 87)", "<span class='green-text'>"],
-    "Promoter": ["#e0441d", "(224, 68, 29)", "<span class='redlight-text'>"],
-    "signal peptide": ["#8b1de0", "(139, 29, 224)", "<span class='purple-text'>"],
-    "CAP binding site": ["#8b1de0", "(139, 29, 224)", "<span class='purple-text'>"],
-    "regulatory": ["#8b1de0", "(139, 29, 224)", "<span class='purple-text'>"],
-    "transport": ["#8b1de0", "(139, 29, 224)", "<span class='purple-text'>"],
-    "gene sequence": ["#b5b5b1", "(181, 181, 177)", "<span class='grey-text'>"],
-    "5UTR": ["#3737c4", "(55, 55, 196)", "<span class='blue-light-text'>"],
-    "new": ["#0a0a0a", "(0, 0, 0)", "<span class='black-text'>"],
-    "transcript_feature": ["#05f0c9", "(5, 240, 201)", "<span class='wave-text'>"],
-}
-
+colors = config['colors']
 
 class GeneInfo(FlaskForm):
     """
@@ -656,70 +597,6 @@ def root():
     Load main page of server
     """
     return index(out_dict)
-
-
-# @app.route("/outputs", methods=["GET", "POST"])
-# def output_files():
-#     """
-#     Load page with output data folder
-#     """
-
-#     folder_path = "src/static/outputs/"
-#     files_and_sizes = list_files_and_sizes(folder_path)
-
-#     if "clear_folder_submit" in request.form:
-#         for directory, _, _ in os.walk(folder_path):
-#             shutil.rmtree(directory)
-
-#     return render_template("output_data.html", all_files = files_and_sizes)
-
-# @app.route("/data", methods=["GET", "POST"])
-# def new_data():
-#     """
-#     Update data sequences
-#     """
-#     unknown_elements = ''
-#     new_elements = pd.DataFrame([['', '', '', '', '']], 
-#                             columns=('Elements', 
-#                                      'Names', 
-#                                      'Sequence', 
-#                                      'Describe', 
-#                                      'in frame'))
-#     check_table = new_elements.copy()
-
-#     if "sequences_file_upload_submit" in request.form:
-#         # upload fasta file with new element
-#         if "file" not in request.files:
-#             return "No file part"
-
-#         file = request.files["file"]
-#         filename = file.filename
-#         filename = filename.split(".")[0]
-#         new_elements = pd.read_excel(file)
-
-#         elements_colors = list(colors.keys())
-#         unknown_elements = [i for i in pd.unique(new_elements['Elements']) if i not in elements_colors]
-
-#         check_table = new_elements[new_elements['Elements'].apply(lambda p: p  in unknown_elements)]
-
-#         new_color = colors['new']
-#         for new_el in unknown_elements:
-#             colors[new_el] = new_color
-
-#     if "save_data_submit" in request.form:
-#         new_elements.to_excel("src/data/all_sequences.xlsx", sheet_name="Sequences", index=None)
-#         message = 'Please, restart program'
-#         message = ("<span class='red-text'>" 
-#                     + 'Error: ' + str(message)
-#                     + "</span>")
-#         return render_template("new_data.html", unknown_elements = message, 
-#                            tables=[check_table.to_html(classes='table table-striped'), 
-#                                    new_elements.to_html(classes='table table-striped')])
-
-
-#     return render_template("new_data.html", unknown_elements = unknown_elements, 
-#                            tables=[check_table.to_html(classes='table table-striped'), 
-#                                    new_elements.to_html(classes='table table-striped')])
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
