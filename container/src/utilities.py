@@ -232,9 +232,14 @@ def make_seqience(
 
     insert_start = flank_size + lha_size + 1
     next_element = insert_start
+    next_element_no_n = insert_start
 
     elements_list = []
+    elements_list_no_n = []
     elements_list.append(
+        ["LHA", flank_size + 1, flank_size + lha_size, "+", "gene sequence"]
+    )
+    elements_list_no_n.append(
         ["LHA", flank_size + 1, flank_size + lha_size, "+", "gene sequence"]
     )
 
@@ -243,6 +248,7 @@ def make_seqience(
         atg_start = len(left_seq.split(atg_20_seq)[0])
         if atg_start<insert_start:
             elements_list.append(['ATG_gene', atg_start+1, atg_start + 3, '+', 'Start codon'])
+            elements_list_no_n.append(['ATG_gene', atg_start+1, atg_start + 3, '+', 'Start codon'])
 
      
     for p_sequence in promoter_list:
@@ -250,6 +256,7 @@ def make_seqience(
             promoter_start = len(left_seq.split(p_sequence)[0])
             promoter_end = promoter_start + len(p_sequence)
             elements_list.append(['Promoter_gene', promoter_start+1, promoter_end, '+', 'Promoter'])
+            elements_list_no_n.append(['Promoter_gene', promoter_start+1, promoter_end, '+', 'Promoter'])
 
         else:
             for delta in range(1, len(p_sequence)//2):
@@ -257,6 +264,7 @@ def make_seqience(
                     promoter_start = len(left_seq.split(p_sequence[delta:])[0])
                     promoter_end = promoter_start + len(p_sequence[delta:])
                     elements_list.append(['Promoter_gene', promoter_start+1, promoter_end, '+', 'Promoter'])
+                    elements_list_no_n.append(['Promoter_gene', promoter_start+1, promoter_end, '+', 'Promoter'])
 
     insert_sequence = ""
     insert_sequence_color = ""
@@ -341,9 +349,17 @@ def make_seqience(
                 insert_start + len(insert_sequence) - 1,
                 direction,
                 group,
-            ]
-        )
+            ])
+        elements_list_no_n.append(
+            [
+                element,
+                next_element_no_n,
+                insert_start + len(insert_sequence.replace('N', '')) - 1,
+                direction,
+                group,
+            ])
         next_element = insert_start + len(insert_sequence)
+        next_element_no_n = insert_start + len(insert_sequence.replace('N', ''))
 
     elements_list.append(
         [
@@ -354,8 +370,17 @@ def make_seqience(
             "gene sequence",
         ]
     )
+    elements_list_no_n.append(
+        [
+            "RHA",
+            np.max([i[2] for i in elements_list_no_n]) + 1,
+            np.max([i[2] for i in elements_list_no_n]) + rha_size,
+            "+",
+            "gene sequence",
+        ]
+    )
 
-    return elements_list, insert_sequence, insert_sequence_color
+    return elements_list, insert_sequence, insert_sequence_color, elements_list_no_n
 
 
 def make_sequence_image(gene_name, elements_list, colors, full_sequence):

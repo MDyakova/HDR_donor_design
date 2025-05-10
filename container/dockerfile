@@ -5,5 +5,19 @@ COPY src /src
 RUN pip3 install -r /src/requirements.txt
 RUN chmod -R 777 /src
 RUN python /src/load_databases.py
+# WORKDIR /src
 EXPOSE 5000
-CMD python src/main.py
+# CMD python src/main.py
+CMD ["python", "src/main.py"]
+
+# FROM python:3.8
+
+# RUN pip3 install --upgrade pip
+# COPY src /src
+# WORKDIR /src  # <-- Set working directory
+# RUN pip3 install -r requirements.txt
+# RUN chmod -R 777 .
+# RUN python load_databases.py
+# EXPOSE 5000
+
+# CMD ["python", "main.py"]

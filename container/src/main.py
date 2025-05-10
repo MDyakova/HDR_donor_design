@@ -27,6 +27,11 @@ from utilities import (
     oligo_creater
 )
 
+# import time
+
+# # Wait for 5 seconds
+# time.sleep(500000000)
+
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "mysecretkey"  # fake key to work with flask server
 
@@ -48,7 +53,7 @@ possible_elements = [
 ]
 
 # dictionary with all useful variables necessary to save throw whole pipeline
-with open('config.json', 'r') as f:
+with open('src/config.json', 'r') as f:
     config = json.load(f)
 
 out_dict = config['initial_values']
@@ -260,7 +265,10 @@ def index(out_dict):
 
             insert_sequence = ""
 
-            elements_list, insert_sequence, insert_sequence_color = make_seqience(
+            (elements_list, 
+             insert_sequence, 
+             insert_sequence_color, 
+             elements_list_no_n) = make_seqience(
                 out_dict["flank"],
                 out_dict["lha"],
                 out_dict["rha"],
@@ -307,8 +315,23 @@ def index(out_dict):
                                             elements_list,
                                             out_dict["position_insert_start"],
                                             out_dict['delta_nucleotides'])
+            if np.max(['exon' in i[0] for i in out_dict["features_list"]]):
+                elements_list_no_n = gene_features(out_dict["features_list"], 
+                                            out_dict["guide"], 
+                                            out_dict["guide_pos"], 
+                                            out_dict["guide_in_transcript_pos"], 
+                                            elements_list_no_n,
+                                            out_dict["position_insert_start"],
+                                            out_dict['delta_nucleotides'])
             
             out_dict["elements_list"] = elements_list
+            out_dict["elements_list_no_n"] = elements_list_no_n
+
+        if "delete_n_submit" in request.form:
+            # delete all Ns from sequence
+            out_dict["full_seq"] = out_dict["full_seq"].replace('N', '')
+            out_dict["full_seq_color"] = out_dict["full_seq_color"].replace('N', '')
+            out_dict["elements_list"] = out_dict["elements_list_no_n"]
 
         if "del_element_submit" in request.form:
             # delete selected element
