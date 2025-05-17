@@ -475,7 +475,7 @@ def index(out_dict):
                 out_dict["selected_elements"] = []
 
         if "cts_info_form_submit" in request.form:
-            # Data from ensemble and ncbi, guide sequence
+            # change donor sequence to avoid guide connection with donor
             cts_ha_size = int(cts_info_form.text_field8.data)
             buffer = int(cts_info_form.text_field9.data)
             scrambled_nt = int(cts_info_form.text_field10.data)
@@ -487,37 +487,59 @@ def index(out_dict):
                                          + "</span>")
                 return render_template("home.html", out_dict=out_dict, forms=forms)
 
-            out_dict["CTS_HA"] = np.maximum(cts_ha_size, 23)
-            out_dict["buffer"] = buffer
-            out_dict["scrambled_nt"] = scrambled_nt           
-
-            # files_name = save_files_form.text_field7.default
-            # out_dict["files_name"] = files_name
-
-            nucleotide_changes = {'A':'G', 'T':'C', 'C':'T', 'G':'A'}
-
             checkbox_value4 = request.form.get("checkbox4")
 
-            if checkbox_value4 == "is_terminal_oligos":
-                is_terminal = True
+            if checkbox_value4 == "is_left_terminal_oligos":
+                is_left_terminal = True
             else:
-                is_terminal = False
+                is_left_terminal = False
 
-            full_sequence, oligos, elements_list = oligo_creater(out_dict["guide"], out_dict["full_seq"], out_dict["CTS_HA"], 
-                                                                out_dict["buffer"], out_dict["scrambled_nt"], nucleotide_changes,
-                                                                out_dict['left_flank'], out_dict['right_flank'], 
-                                                                out_dict['lha_sequence'], out_dict['rha_sequence'],
-                                                                out_dict["insert_seq"], out_dict["elements_list"],
-                                                                out_dict['left_guide'], out_dict['right_guide'],
-                                                                out_dict["flank"], is_terminal)
+            checkbox_value4_1 = request.form.get("checkbox4_1")
+            if checkbox_value4_1 == "is_right_terminal_oligos":
+                is_right_terminal = True
+            else:
+                is_right_terminal = False
+
+            checkbox_value5 = request.form.get("checkbox5")
+            checkbox_value6 = request.form.get("checkbox6")
+
+            if checkbox_value5 == "is_left":
+                is_left= True
+            else:
+                is_left = False
+
+            if checkbox_value6 == "is_right":
+                is_right= True
+            else:
+                is_right = False
+
+            # atg_pos = list(filter(lambda p: p[0]=='ATG_gene', out_dict['elements_list']))[0]
+            # atg_start = atg_pos[1]-1
+            # atg_end = atg_pos[2]
+
+            # right_guide_start = len(out_dict["full_seq"].split(out_dict['right_guide'])[0])
+            # right_guide_end = right_guide_start + len(out_dict['right_guide'])
+
+            # compl_dict = {"A": "T", "T": "A", "G": "C", "C": "G"}
+            # left_guide_rev = ''.join([compl_dict[i] for i in out_dict['left_guide']][::-1])
+
+            # left_guide_start = len(out_dict["full_seq"].split(left_guide_rev)[0])
+            # left_guide_end = left_guide_start + len(left_guide_rev)
+
+            full_sequence, oligos = oligo_creater(out_dict["guide"], out_dict["full_seq"], out_dict["CTS_HA"], 
+                                            out_dict["buffer"], out_dict["scrambled_nt"],  
+                                            out_dict["elements_list"],
+                                            out_dict['left_guide'], out_dict['right_guide'],
+                                            is_left_terminal, is_right_terminal, is_left, is_right)
             
-            out_dict["elements_list_oligo"] = elements_list
             out_dict["full_seq_oligo"] = full_sequence
             out_dict["oligos"] = oligos
+            
+            # return render_template("home.html", out_dict=out_dict, forms=forms)
 
             date_today = str(date.today())
             gbk_file = gene_bank_file(out_dict["gene_name"], out_dict["full_seq_oligo"], date_today, 
-                                            out_dict["elements_list_oligo"], colors, out_dict["files_name"], 
+                                            [], colors, out_dict["files_name"], 
                                             oligos = out_dict["oligos"])
             
             fasta_file_name = (
