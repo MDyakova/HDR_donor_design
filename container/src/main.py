@@ -476,8 +476,7 @@ def index(out_dict):
 
         if "cts_info_form_submit" in request.form:
             # change donor sequence to avoid guide connection with donor
-            # cts_ha_size = int(cts_info_form.text_field8.data)
-            # buffer = int(cts_info_form.text_field9.data)
+
             scrambled_nt = int(cts_info_form.text_field10.data)
             out_dict["scrambled_nt"] = scrambled_nt
 
@@ -514,18 +513,6 @@ def index(out_dict):
             else:
                 is_right = False
 
-            # atg_pos = list(filter(lambda p: p[0]=='ATG_gene', out_dict['elements_list']))[0]
-            # atg_start = atg_pos[1]-1
-            # atg_end = atg_pos[2]
-
-            # right_guide_start = len(out_dict["full_seq"].split(out_dict['right_guide'])[0])
-            # right_guide_end = right_guide_start + len(out_dict['right_guide'])
-
-            # compl_dict = {"A": "T", "T": "A", "G": "C", "C": "G"}
-            # left_guide_rev = ''.join([compl_dict[i] for i in out_dict['left_guide']][::-1])
-
-            # left_guide_start = len(out_dict["full_seq"].split(left_guide_rev)[0])
-            # left_guide_end = left_guide_start + len(left_guide_rev)
 
             full_sequence, oligos, atg_seq = oligo_creater(out_dict["guide"], out_dict["full_seq"],
                                             out_dict["scrambled_nt"],  
@@ -536,9 +523,6 @@ def index(out_dict):
             out_dict["full_seq_oligo"] = full_sequence
             out_dict["oligos"] = oligos
 
-            # out_dict["gene_dict"] = atg_seq
-            
-            # return render_template("home.html", out_dict=out_dict, forms=forms)
 
             date_today = str(date.today())
             gbk_file = gene_bank_file(out_dict["gene_name"], out_dict["full_seq_oligo"], date_today, 
