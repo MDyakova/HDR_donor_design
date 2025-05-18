@@ -781,8 +781,8 @@ def gene_bank_file(gene_name, full_sequence, date_today,
 #                  insert_sequence, elements_list, left_guide, right_guide,
 #                  flank_size, is_terminal):
     
-def oligo_creater(guide, full_sequence, guide_homology_arm_size, 
-                  buffer_size, n_scrambled_bases,
+def oligo_creater(guide, full_sequence, 
+                  n_scrambled_bases,
                   elements_list,
                   left_guide, right_guide, 
                   is_left_terminal, is_right_terminal, 
@@ -792,9 +792,16 @@ def oligo_creater(guide, full_sequence, guide_homology_arm_size,
     compl_dict = {'A':'T', 'T':'A', 'G':'C', 'C':'G'}
 
     # Change internal guide positions 
-    atg_pos = list(filter(lambda p: p[0]=='ATG_gene', elements_list))[0]
-    atg_start = atg_pos[1]-1
-    atg_end = atg_pos[2]
+    if len(list(filter(lambda p: p[0]=='ATG_gene', elements_list)))>0:
+        atg_pos = list(filter(lambda p: p[0]=='ATG_gene', elements_list))[0]
+        atg_start = atg_pos[1]-1
+        atg_end = atg_pos[2]
+    else:
+        lha_pos = list(filter(lambda p: p[0]=='LHA', elements_list))[0]
+        atg_pos = lha_pos[2] - 60
+        atg_start = atg_pos
+        atg_end = atg_start+3
+        atg_seq = full_sequence[atg_start:atg_start+9]
 
     right_guide_start = len(full_sequence.split(right_guide)[0])
     right_guide_end = right_guide_start + len(right_guide)
@@ -819,14 +826,24 @@ def oligo_creater(guide, full_sequence, guide_homology_arm_size,
                         if step%3==2 else left_guide_change[step].lower()
                         for step in range(len(left_guide_change)) 
                         ]
+    
+    all_left_changes = {}
     for step in range(0, len(left_guide_change)-3, 3):
         codon_i = ''.join(left_guide_change[step:step+3]).upper()
         amino_acid_i = codon_using[codon_using['CODON']==codon_i]['Amino acid'].max()
         all_codons_i = list(codon_using[(codon_using['Amino acid']==amino_acid_i)
                                         & (codon_using['CODON']!=codon_i)]['CODON'])
-        if len(all_codons_i)>0:
+        if (len(all_codons_i)>0):
             prefered_codon = all_codons_i[0]
-            left_guide_change[step:step+3] = list(prefered_codon)
+            # left_guide_change[step:step+3] = list(prefered_codon)
+            all_left_changes[step] = list(prefered_codon)
+
+    k = 0
+    for step, codon in zip(all_left_changes.keys(),all_left_changes.values()): 
+        if k<n_scrambled_bases:
+            left_guide_change[step:step+3] = codon
+            k+=1
+        
 
     if len(guide)==55:
         atg_delta_right = atg_delta_left
@@ -850,14 +867,25 @@ def oligo_creater(guide, full_sequence, guide_homology_arm_size,
                         if step%3==2 else right_guide_change[step].lower()
                         for step in range(len(right_guide_change)) 
                         ]
+    
+    all_right_changes = {}
     for step in range(0, len(right_guide_change)-3, 3):
         codon_i = ''.join(right_guide_change[step:step+3]).upper()
         amino_acid_i = codon_using[codon_using['CODON']==codon_i]['Amino acid'].max()
         all_codons_i = list(codon_using[(codon_using['Amino acid']==amino_acid_i)
                                         & (codon_using['CODON']!=codon_i)]['CODON'])
-        if len(all_codons_i)>0:
+        if (len(all_codons_i)>0):
             prefered_codon = all_codons_i[0]
-            right_guide_change[step:step+3] = list(prefered_codon)
+            # right_guide_change[step:step+3] = list(prefered_codon)
+            all_right_changes[step] = list(prefered_codon)
+
+    k = 0
+    reversed_zip = zip(reversed(list(all_right_changes.keys())), 
+                   reversed(list(all_right_changes.values())))
+    for step, codon in reversed_zip: 
+        if k<n_scrambled_bases:
+            right_guide_change[step:step+3] = codon
+            k+=1
 
     if is_left:
         full_sequence = full_sequence.replace(''.join(left_guide_no_change).upper(), 
@@ -875,7 +903,7 @@ def oligo_creater(guide, full_sequence, guide_homology_arm_size,
     oligos.append(['guide_left', len(left_guide), left_guide])
     oligos.append(['guide_right', len(right_guide), right_guide])
         
-    return full_sequence, oligos
+    return full_sequence, oligos, atg_seq
 
     left_guide_seq5, right_guide_seq5 = guide[:20], guide[-20:]
 

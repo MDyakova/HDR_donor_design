@@ -476,11 +476,12 @@ def index(out_dict):
 
         if "cts_info_form_submit" in request.form:
             # change donor sequence to avoid guide connection with donor
-            cts_ha_size = int(cts_info_form.text_field8.data)
-            buffer = int(cts_info_form.text_field9.data)
+            # cts_ha_size = int(cts_info_form.text_field8.data)
+            # buffer = int(cts_info_form.text_field9.data)
             scrambled_nt = int(cts_info_form.text_field10.data)
+            out_dict["scrambled_nt"] = scrambled_nt
 
-            if (cts_ha_size == '') | (buffer == '') | (scrambled_nt == ''):
+            if (scrambled_nt == ''):
                 text_error = 'enter all data'
                 out_dict["gene_dict"] = ("<span class='red-text'>" 
                                          + 'Error: ' + str(text_error)
@@ -526,14 +527,16 @@ def index(out_dict):
             # left_guide_start = len(out_dict["full_seq"].split(left_guide_rev)[0])
             # left_guide_end = left_guide_start + len(left_guide_rev)
 
-            full_sequence, oligos = oligo_creater(out_dict["guide"], out_dict["full_seq"], out_dict["CTS_HA"], 
-                                            out_dict["buffer"], out_dict["scrambled_nt"],  
+            full_sequence, oligos, atg_seq = oligo_creater(out_dict["guide"], out_dict["full_seq"],
+                                            out_dict["scrambled_nt"],  
                                             out_dict["elements_list"],
                                             out_dict['left_guide'], out_dict['right_guide'],
                                             is_left_terminal, is_right_terminal, is_left, is_right)
             
             out_dict["full_seq_oligo"] = full_sequence
             out_dict["oligos"] = oligos
+
+            # out_dict["gene_dict"] = atg_seq
             
             # return render_template("home.html", out_dict=out_dict, forms=forms)
 
