@@ -27,6 +27,11 @@ from utilities import (
     oligo_creater
 )
 
+# import time
+
+# # Wait for 5 seconds
+# time.sleep(500000000)
+
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "mysecretkey"  # fake key to work with flask server
 
@@ -48,7 +53,7 @@ possible_elements = [
 ]
 
 # dictionary with all useful variables necessary to save throw whole pipeline
-with open('config.json', 'r') as f:
+with open('src/config.json', 'r') as f:
     config = json.load(f)
 
 out_dict = config['initial_values']
@@ -260,7 +265,10 @@ def index(out_dict):
 
             insert_sequence = ""
 
-            elements_list, insert_sequence, insert_sequence_color = make_seqience(
+            (elements_list, 
+             insert_sequence, 
+             insert_sequence_color, 
+             elements_list_no_n) = make_seqience(
                 out_dict["flank"],
                 out_dict["lha"],
                 out_dict["rha"],
@@ -307,8 +315,23 @@ def index(out_dict):
                                             elements_list,
                                             out_dict["position_insert_start"],
                                             out_dict['delta_nucleotides'])
+            if np.max(['exon' in i[0] for i in out_dict["features_list"]]):
+                elements_list_no_n = gene_features(out_dict["features_list"], 
+                                            out_dict["guide"], 
+                                            out_dict["guide_pos"], 
+                                            out_dict["guide_in_transcript_pos"], 
+                                            elements_list_no_n,
+                                            out_dict["position_insert_start"],
+                                            out_dict['delta_nucleotides'])
             
             out_dict["elements_list"] = elements_list
+            out_dict["elements_list_no_n"] = elements_list_no_n
+
+        if "delete_n_submit" in request.form:
+            # delete all Ns from sequence
+            out_dict["full_seq"] = out_dict["full_seq"].replace('N', '')
+            out_dict["full_seq_color"] = out_dict["full_seq_color"].replace('N', '')
+            out_dict["elements_list"] = out_dict["elements_list_no_n"]
 
         if "del_element_submit" in request.form:
             # delete selected element
@@ -452,49 +475,58 @@ def index(out_dict):
                 out_dict["selected_elements"] = []
 
         if "cts_info_form_submit" in request.form:
-            # Data from ensemble and ncbi, guide sequence
-            cts_ha_size = int(cts_info_form.text_field8.data)
-            buffer = int(cts_info_form.text_field9.data)
-            scrambled_nt = int(cts_info_form.text_field10.data)
+            # change donor sequence to avoid guide connection with donor
 
-            if (cts_ha_size == '') | (buffer == '') | (scrambled_nt == ''):
+            scrambled_nt = int(cts_info_form.text_field10.data)
+            out_dict["scrambled_nt"] = scrambled_nt
+
+            if (scrambled_nt == ''):
                 text_error = 'enter all data'
                 out_dict["gene_dict"] = ("<span class='red-text'>" 
                                          + 'Error: ' + str(text_error)
                                          + "</span>")
                 return render_template("home.html", out_dict=out_dict, forms=forms)
 
-            out_dict["CTS_HA"] = np.maximum(cts_ha_size, 23)
-            out_dict["buffer"] = buffer
-            out_dict["scrambled_nt"] = scrambled_nt           
-
-            # files_name = save_files_form.text_field7.default
-            # out_dict["files_name"] = files_name
-
-            nucleotide_changes = {'A':'G', 'T':'C', 'C':'T', 'G':'A'}
-
             checkbox_value4 = request.form.get("checkbox4")
 
-            if checkbox_value4 == "is_terminal_oligos":
-                is_terminal = True
+            if checkbox_value4 == "is_left_terminal_oligos":
+                is_left_terminal = True
             else:
-                is_terminal = False
+                is_left_terminal = False
 
-            full_sequence, oligos, elements_list = oligo_creater(out_dict["guide"], out_dict["full_seq"], out_dict["CTS_HA"], 
-                                                                out_dict["buffer"], out_dict["scrambled_nt"], nucleotide_changes,
-                                                                out_dict['left_flank'], out_dict['right_flank'], 
-                                                                out_dict['lha_sequence'], out_dict['rha_sequence'],
-                                                                out_dict["insert_seq"], out_dict["elements_list"],
-                                                                out_dict['left_guide'], out_dict['right_guide'],
-                                                                out_dict["flank"], is_terminal)
+            checkbox_value4_1 = request.form.get("checkbox4_1")
+            if checkbox_value4_1 == "is_right_terminal_oligos":
+                is_right_terminal = True
+            else:
+                is_right_terminal = False
+
+            checkbox_value5 = request.form.get("checkbox5")
+            checkbox_value6 = request.form.get("checkbox6")
+
+            if checkbox_value5 == "is_left":
+                is_left= True
+            else:
+                is_left = False
+
+            if checkbox_value6 == "is_right":
+                is_right= True
+            else:
+                is_right = False
+
+
+            full_sequence, oligos, atg_seq = oligo_creater(out_dict["guide"], out_dict["full_seq"],
+                                            out_dict["scrambled_nt"],  
+                                            out_dict["elements_list"],
+                                            out_dict['left_guide'], out_dict['right_guide'],
+                                            is_left_terminal, is_right_terminal, is_left, is_right)
             
-            out_dict["elements_list_oligo"] = elements_list
             out_dict["full_seq_oligo"] = full_sequence
             out_dict["oligos"] = oligos
 
+
             date_today = str(date.today())
             gbk_file = gene_bank_file(out_dict["gene_name"], out_dict["full_seq_oligo"], date_today, 
-                                            out_dict["elements_list_oligo"], colors, out_dict["files_name"], 
+                                            [], colors, out_dict["files_name"], 
                                             oligos = out_dict["oligos"])
             
             fasta_file_name = (

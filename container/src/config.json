@@ -41,7 +41,8 @@
         "right_guide":"",
         "left_guide":"",
         "full_seq_oligo":"",
-        "elements_list_oligo":[]
+        "elements_list_oligo":[],
+        "elements_list_no_n":[]
     },
     "compl_dict": {
         "A": "T", 

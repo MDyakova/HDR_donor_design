@@ -17,6 +17,21 @@ promoters = pd.read_table('src/static/data/human_epdnew_V33OJ.bed',
                           header=None, 
                           names=('Chr', 'start', 'end', 'promoter_id', 'v', 'strand'))
 
+amino_acid_dict = {
+    "Ala": "A", "Arg": "R", "Asn": "N", "Asp": "D",
+    "Cys": "C", "Gln": "Q", "Glu": "E", "Gly": "G",
+    "His": "H", "Ile": "I", "Leu": "L", "Lys": "K",
+    "Met": "M", "Phe": "F", "Pro": "P", "Ser": "S",
+    "Thr": "T", "Trp": "W", "Tyr": "Y", "Val": "V",
+    "Stop": "*"
+}
+
+codon_using = pd.read_table('src/static/data/nuclear_codon_statistics.tsv')
+# codon_using = codon_using[codon_using['Fraction']>=0.08]
+# codon_using = codon_using[codon_using['Preferred Codon']=="True"]
+codon_using['aa'] = codon_using['Amino acid'].apply(lambda p: amino_acid_dict[p])
+codon_using.sort_values(by=['aa', 'Fraction'], ascending=False, inplace=True)
+
 def ensemble_info(gene_name):
     """
     Get information from ensemble database.
@@ -232,9 +247,14 @@ def make_seqience(
 
     insert_start = flank_size + lha_size + 1
     next_element = insert_start
+    next_element_no_n = insert_start
 
     elements_list = []
+    elements_list_no_n = []
     elements_list.append(
+        ["LHA", flank_size + 1, flank_size + lha_size, "+", "gene sequence"]
+    )
+    elements_list_no_n.append(
         ["LHA", flank_size + 1, flank_size + lha_size, "+", "gene sequence"]
     )
 
@@ -243,6 +263,7 @@ def make_seqience(
         atg_start = len(left_seq.split(atg_20_seq)[0])
         if atg_start<insert_start:
             elements_list.append(['ATG_gene', atg_start+1, atg_start + 3, '+', 'Start codon'])
+            elements_list_no_n.append(['ATG_gene', atg_start+1, atg_start + 3, '+', 'Start codon'])
 
      
     for p_sequence in promoter_list:
@@ -250,6 +271,7 @@ def make_seqience(
             promoter_start = len(left_seq.split(p_sequence)[0])
             promoter_end = promoter_start + len(p_sequence)
             elements_list.append(['Promoter_gene', promoter_start+1, promoter_end, '+', 'Promoter'])
+            elements_list_no_n.append(['Promoter_gene', promoter_start+1, promoter_end, '+', 'Promoter'])
 
         else:
             for delta in range(1, len(p_sequence)//2):
@@ -257,6 +279,7 @@ def make_seqience(
                     promoter_start = len(left_seq.split(p_sequence[delta:])[0])
                     promoter_end = promoter_start + len(p_sequence[delta:])
                     elements_list.append(['Promoter_gene', promoter_start+1, promoter_end, '+', 'Promoter'])
+                    elements_list_no_n.append(['Promoter_gene', promoter_start+1, promoter_end, '+', 'Promoter'])
 
     insert_sequence = ""
     insert_sequence_color = ""
@@ -341,9 +364,17 @@ def make_seqience(
                 insert_start + len(insert_sequence) - 1,
                 direction,
                 group,
-            ]
-        )
+            ])
+        elements_list_no_n.append(
+            [
+                element,
+                next_element_no_n,
+                insert_start + len(insert_sequence.replace('N', '')) - 1,
+                direction,
+                group,
+            ])
         next_element = insert_start + len(insert_sequence)
+        next_element_no_n = insert_start + len(insert_sequence.replace('N', ''))
 
     elements_list.append(
         [
@@ -354,8 +385,17 @@ def make_seqience(
             "gene sequence",
         ]
     )
+    elements_list_no_n.append(
+        [
+            "RHA",
+            np.max([i[2] for i in elements_list_no_n]) + 1,
+            np.max([i[2] for i in elements_list_no_n]) + rha_size,
+            "+",
+            "gene sequence",
+        ]
+    )
 
-    return elements_list, insert_sequence, insert_sequence_color
+    return elements_list, insert_sequence, insert_sequence_color, elements_list_no_n
 
 
 def make_sequence_image(gene_name, elements_list, colors, full_sequence):
@@ -640,7 +680,7 @@ def gene_bank_file(gene_name, full_sequence, date_today,
         name = oligo[0]
         seq = oligo[2]
 
-        primer_feature = primer_template(name, seq, date_today, start, end)
+        primer_feature = primer_template(name, seq, date_today, 1, len(seq))
         all_primers += primer_feature + '\n'
         
     origin_seq = ''
@@ -670,67 +710,126 @@ def gene_bank_file(gene_name, full_sequence, date_today,
         f.write(origin + '\n')
 
     return gbk_file_name
-
-
-def oligo_creater(guide, full_sequence, guide_homology_arm_size, 
-                  buffer_size, n_scrambled_bases, nucleotide_changes,
-                 left_flank, right_flank, LHA_sequence, RHA_sequence,
-                 insert_sequence, elements_list, left_guide, right_guide,
-                 flank_size, is_terminal):
+   
+def oligo_creater(guide, full_sequence, 
+                  n_scrambled_bases,
+                  elements_list,
+                  left_guide, right_guide, 
+                  is_left_terminal, is_right_terminal, 
+                  is_left, is_right):
 
     oligos = []
     compl_dict = {'A':'T', 'T':'A', 'G':'C', 'C':'G'}
 
-    left_guide_seq5, right_guide_seq5 = guide[:20], guide[-20:]
-
-    left_guide_homology_arm = full_sequence.split(left_guide_seq5)[0][-(guide_homology_arm_size+3):]
-    left_oligo = left_guide_homology_arm + left_guide_seq5
-
-    right_guide_homology_arm = full_sequence.split(right_guide_seq5)[1][:(guide_homology_arm_size+3)]
-    right_oligo = right_guide_seq5 + right_guide_homology_arm
-
-    if n_scrambled_bases>0:
-        left_guide_seq5_mut = (''.join([nucleotide_changes[n] for n in left_guide_seq5[:n_scrambled_bases]]) 
-                                    + left_guide_seq5[n_scrambled_bases:])
-        right_guide_seq5_mut = (right_guide_seq5[:(20-n_scrambled_bases)] 
-                                + ''.join([nucleotide_changes[n] for n in right_guide_seq5[-n_scrambled_bases:]]))
+    # Change internal guide positions 
+    if len(list(filter(lambda p: p[0]=='ATG_gene', elements_list)))>0:
+        atg_pos = list(filter(lambda p: p[0]=='ATG_gene', elements_list))[0]
+        atg_start = atg_pos[1]-1
+        atg_end = atg_pos[2]
     else:
-        left_guide_seq5_mut = left_guide_seq5
-        right_guide_seq5_mut = right_guide_seq5
+        lha_pos = list(filter(lambda p: p[0]=='LHA', elements_list))[0]
+        atg_pos = lha_pos[2] - 60
+        atg_start = atg_pos
+        atg_end = atg_start+3
+        atg_seq = full_sequence[atg_start:atg_start+9]
 
-    eff_pam = 'AGG'
-    eff_pam_rev = 'CCT'
+    right_guide_start = len(full_sequence.split(right_guide)[0])
+    right_guide_end = right_guide_start + len(right_guide)
 
-    left_term_oligo = right_guide_seq5 + eff_pam + LHA_sequence[:guide_homology_arm_size]
-    right_term_oligo = RHA_sequence[-guide_homology_arm_size:] + eff_pam_rev + left_guide_seq5
+    compl_dict = {"A": "T", "T": "A", "G": "C", "C": "G"}
+    left_guide_rev = ''.join([compl_dict[i] for i in left_guide][::-1])
 
-    left_term_oligo = left_term_oligo.replace(right_guide_seq5, right_guide_seq5_mut)
-    right_term_oligo = right_term_oligo.replace(left_guide_seq5, left_guide_seq5_mut)
-    left_oligo = left_oligo.replace(left_guide_seq5, left_guide_seq5_mut)
-    right_oligo = right_oligo.replace(right_guide_seq5, right_guide_seq5_mut)
+    left_guide_start = len(full_sequence.split(left_guide_rev)[0])
+    left_guide_end = left_guide_start + len(left_guide_rev)
 
-    left_oligo_rev = ''.join([compl_dict[n] for n in left_oligo][::-1])
-    right_oligo_rev = ''.join([compl_dict[n] for n in right_oligo][::-1])
-    left_term_oligo_rev = ''.join([compl_dict[n] for n in left_term_oligo][::-1])
-    right_term_oligo_rev = ''.join([compl_dict[n] for n in right_term_oligo][::-1])
+    atg_delta_left = (left_guide_start - atg_start)%3
+    if atg_delta_left==0:
+        left_guide_change = full_sequence[left_guide_start-3:left_guide_end]
+    elif atg_delta_left==1:
+        left_guide_change = full_sequence[left_guide_start-5:left_guide_end]
+    elif atg_delta_left==2:
+        left_guide_change = full_sequence[left_guide_start-4:left_guide_end]
 
-    oligos.append(['LHA_adjacent_CTS', len(left_oligo_rev), left_oligo_rev])
-    oligos.append(['RHA_adjacent_CTS', len(right_oligo_rev), right_oligo_rev])
+    left_guide_no_change = left_guide_change
 
-    if is_terminal:
-        oligos.append(['LHA_terminal_CTS', len(left_term_oligo_rev), left_term_oligo_rev])
-        oligos.append(['RHA_terminal_CTS', len(right_term_oligo_rev), right_term_oligo_rev])
-
-        full_sequence = (left_flank[-buffer_size:] + left_term_oligo[:23] + LHA_sequence + insert_sequence 
-                            + RHA_sequence + right_term_oligo[-23:] + right_flank[:buffer_size])
-
-        delta  = flank_size - 23 - buffer_size
-        elements_list = [[el[i]-delta if (i==1) | (i==2) else el[i] for i in range(5)] for el in elements_list]
-
-    full_sequence = full_sequence.replace(right_guide_seq5, right_guide_seq5_mut)
-    full_sequence = full_sequence.replace(left_guide_seq5, left_guide_seq5_mut)
-
-    oligos.append(['guide', len(left_guide), left_guide])
-    oligos.append(['guide', len(right_guide), right_guide])
+    left_guide_change = [left_guide_change[step].upper() 
+                        if step%3==2 else left_guide_change[step].lower()
+                        for step in range(len(left_guide_change)) 
+                        ]
     
-    return full_sequence, oligos, elements_list
+    all_left_changes = {}
+    for step in range(0, len(left_guide_change)-3, 3):
+        codon_i = ''.join(left_guide_change[step:step+3]).upper()
+        amino_acid_i = codon_using[codon_using['CODON']==codon_i]['Amino acid'].max()
+        all_codons_i = list(codon_using[(codon_using['Amino acid']==amino_acid_i)
+                                        & (codon_using['CODON']!=codon_i)]['CODON'])
+        if (len(all_codons_i)>0):
+            prefered_codon = all_codons_i[0]
+            all_left_changes[step] = list(prefered_codon)
+
+    k = 0
+    for step, codon in zip(all_left_changes.keys(),all_left_changes.values()): 
+        if k<n_scrambled_bases:
+            left_guide_change[step:step+3] = codon
+            k+=1
+        
+
+    if len(guide)==55:
+        atg_delta_right = atg_delta_left
+    elif len(guide)==56:
+        atg_delta_right = atg_delta_left+1
+    elif len(guide)==57:
+        atg_delta_right = atg_delta_left+2
+        if atg_delta_right==3:
+            atg_delta_right = 0
+
+    if atg_delta_right==0:
+        right_guide_change = full_sequence[right_guide_start:right_guide_end+3]
+    elif atg_delta_right==1:
+        right_guide_change = full_sequence[right_guide_start-2:right_guide_end+3]
+    elif atg_delta_right==2:
+        right_guide_change = full_sequence[right_guide_start-1:right_guide_end+3]
+
+    right_guide_no_change = right_guide_change
+
+    right_guide_change = [right_guide_change[step].upper() 
+                        if step%3==2 else right_guide_change[step].lower()
+                        for step in range(len(right_guide_change)) 
+                        ]
+    
+    all_right_changes = {}
+    for step in range(0, len(right_guide_change)-3, 3):
+        codon_i = ''.join(right_guide_change[step:step+3]).upper()
+        amino_acid_i = codon_using[codon_using['CODON']==codon_i]['Amino acid'].max()
+        all_codons_i = list(codon_using[(codon_using['Amino acid']==amino_acid_i)
+                                        & (codon_using['CODON']!=codon_i)]['CODON'])
+        if (len(all_codons_i)>0):
+            prefered_codon = all_codons_i[0]
+            # right_guide_change[step:step+3] = list(prefered_codon)
+            all_right_changes[step] = list(prefered_codon)
+
+    k = 0
+    reversed_zip = zip(reversed(list(all_right_changes.keys())), 
+                   reversed(list(all_right_changes.values())))
+    for step, codon in reversed_zip: 
+        if k<n_scrambled_bases:
+            right_guide_change[step:step+3] = codon
+            k+=1
+
+    if is_left:
+        full_sequence = full_sequence.replace(''.join(left_guide_no_change).upper(), 
+                                            ''.join(left_guide_change).upper())
+    if is_right:
+        full_sequence = full_sequence.replace(''.join(right_guide_no_change).upper(), 
+                                            ''.join(right_guide_change).upper())
+    # Add additional sequences to 5' and 3' ends
+    if is_left_terminal:
+        full_sequence = 'AT'*4 + left_guide_no_change + full_sequence
+    if is_right_terminal:
+        full_sequence = full_sequence + right_guide_no_change + 'AT'*4
+
+
+    oligos.append(['guide_left', len(left_guide), left_guide])
+    oligos.append(['guide_right', len(right_guide), right_guide])
+        
+    return full_sequence, oligos, atg_seq
